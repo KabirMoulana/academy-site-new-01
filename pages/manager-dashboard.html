@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Manager Dashboard — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-icon">🗓️</span><div class="stat-value" id="statBatches">…</div><div class="stat-label">Batches</div></div>
+        <div class="stat-card"><span class="stat-icon">📚</span><div class="stat-value" id="statSubjects">…</div><div class="stat-label">Subjects</div></div>
+        <div class="stat-card"><span class="stat-icon">👨‍🎓</span><div class="stat-value" id="statEnroll">…</div><div class="stat-label">Active Enrollments</div></div>
+        <div class="stat-card"><span class="stat-icon">💳</span><div class="stat-value" id="statPending">…</div><div class="stat-label">Pending Payments</div></div>
+      </div>
+
+      <div class="tab-section">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="mgr-batches">Batches</button>
+          <button class="tab-btn" data-tab="mgr-subjects">Subjects</button>
+          <button class="tab-btn" data-tab="mgr-enrollments">Enrollments</button>
+          <button class="tab-btn" data-tab="mgr-payments">Payments</button>
+          <button class="tab-btn" data-tab="mgr-lecturers">Lecturers</button>
+          <button class="tab-btn" data-tab="mgr-students">Students</button>
+        </div>
+
+        <!-- BATCHES -->
+        <div class="tab-content active" id="mgr-batches">
+          <div class="section-header">
+            <div class="section-title">Batches</div>
+            <button class="btn btn-primary" onclick="openBatchModal()">+ Create Batch</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Name</th><th>Mode</th><th>Schedule</th><th>Start</th><th>End</th><th>Actions</th></tr></thead>
+            <tbody id="batchTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- SUBJECTS -->
+        <div class="tab-content" id="mgr-subjects">
+          <div class="section-header">
+            <div class="section-title">Subjects</div>
+            <button class="btn btn-primary" onclick="openSubjectModal()">+ Add Subject</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Name</th><th>Level</th><th>Syllabus</th><th>Actions</th></tr></thead>
+            <tbody id="subjectTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- ENROLLMENTS -->
+        <div class="tab-content" id="mgr-enrollments">
+          <div class="section-header">
+            <div class="section-title">Enrollments</div>
+            <button class="btn btn-primary" onclick="openModal('enrollModal')">+ Enroll Student</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Student</th><th>Batch</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="enrollTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- PAYMENTS -->
+        <div class="tab-content" id="mgr-payments">
+          <div class="section-header">
+            <div class="section-title">Payments</div>
+            <button class="btn btn-primary" onclick="openModal('payModal')">+ Record Payment</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Student</th><th>Amount</th><th>Month</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="payTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- LECTURERS -->
+        <div class="tab-content" id="mgr-lecturers">
+          <div class="section-header">
+            <div class="section-title">Lecturers</div>
+            <button class="btn btn-primary" onclick="openModal('addLecModal')">+ Add Lecturer</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Qualification</th><th>Specialization</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="lecTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- STUDENTS -->
+        <div class="tab-content" id="mgr-students">
+          <div class="section-header">
+            <div class="section-title">Students</div>
+            <button class="btn btn-primary" onclick="openModal('addStudModal')">+ Add Student</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Type</th><th>Grade</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="studTbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BATCH MODAL -->
+<div class="modal-overlay" id="batchModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title" id="batchTitle">Create Batch</h2><button class="modal-close" onclick="closeModal('batchModal')">✕</button></div>
+    <input type="hidden" id="editBatchID"/>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Batch Name</label><input class="form-control" id="bName" placeholder="Batch D – 2025"/></div>
+      <div class="form-group"><label class="form-label">Mode</label><select class="form-control" id="bMode"><option value="online">Online</option><option value="physical">Physical</option></select></div>
+      <div class="form-group"><label class="form-label">Schedule</label><input class="form-control" id="bSched" placeholder="Mon/Wed 6PM"/></div>
+      <div class="form-group"><label class="form-label">Start Date</label><input class="form-control" type="date" id="bStart"/></div>
+      <div class="form-group"><label class="form-label">End Date</label><input class="form-control" type="date" id="bEnd"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveBatch()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('batchModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBJECT MODAL -->
+<div class="modal-overlay" id="subjectModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title" id="subjectTitle">Add Subject</h2><button class="modal-close" onclick="closeModal('subjectModal')">✕</button></div>
+    <input type="hidden" id="editSubjectID"/>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Name</label><input class="form-control" id="sName" placeholder="Biology"/></div>
+      <div class="form-group"><label class="form-label">Level</label><select class="form-control" id="sLevel"><option>Ordinary</option><option>Advanced</option></select></div>
+      <div class="form-group"><label class="form-label">Syllabus</label><input class="form-control" id="sSyllabus" placeholder="A/L Biology"/></div>
+      <div class="form-group"><label class="form-label">Description</label><input class="form-control" id="sDesc" placeholder="Brief description…"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveSubject()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('subjectModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ENROLL MODAL -->
+<div class="modal-overlay" id="enrollModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Enroll Student</h2><button class="modal-close" onclick="closeModal('enrollModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Student ID</label><input class="form-control" id="enStudentID" type="number" placeholder="1"/></div>
+      <div class="form-group"><label class="form-label">Batch</label><select class="form-control" id="enBatch"></select></div>
+      <div class="form-group"><label class="form-label">Enroll Date</label><input class="form-control" id="enDate" type="date"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="doEnroll()">Enroll</button>
+      <button class="btn btn-outline" onclick="closeModal('enrollModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="payModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Record Payment</h2><button class="modal-close" onclick="closeModal('payModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Student ID</label><input class="form-control" id="pStudentID" type="number" placeholder="1"/></div>
+      <div class="form-group"><label class="form-label">Amount (Rs)</label><input class="form-control" id="pAmount" type="number" placeholder="8500"/></div>
+      <div class="form-group"><label class="form-label">Month</label><input class="form-control" id="pMonth" type="month"/></div>
+      <div class="form-group"><label class="form-label">Status</label><select class="form-control" id="pStatus"><option value="pending">Pending</option><option value="approved">Approved</option></select></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="recordPayment()">Record</button>
+      <button class="btn btn-outline" onclick="closeModal('payModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD LECTURER MODAL -->
+<div class="modal-overlay" id="addLecModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Add Lecturer</h2><button class="modal-close" onclick="closeModal('addLecModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Name</label><input class="form-control" id="lName" placeholder="Full name"/></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="lEmail" type="email" placeholder="email@educore.lk"/></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-control" id="lPass" type="password" placeholder="••••••••"/></div>
+      <div class="form-group"><label class="form-label">Qualification</label><input class="form-control" id="lQual" placeholder="MSc Mathematics"/></div>
+      <div class="form-group"><label class="form-label">Specialization</label><input class="form-control" id="lSpec" placeholder="Applied Mathematics"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="addLecturer()">Add</button>
+      <button class="btn btn-outline" onclick="closeModal('addLecModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD STUDENT MODAL -->
+<div class="modal-overlay" id="addStudModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Add Student</h2><button class="modal-close" onclick="closeModal('addStudModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Name</label><input class="form-control" id="stName" placeholder="Full name"/></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="stEmail" type="email" placeholder="email@…"/></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-control" id="stPass" type="password" placeholder="••••••••"/></div>
+      <div class="form-group"><label class="form-label">Type</label><select class="form-control" id="stType"><option value="online">Online</option><option value="physical">Physical</option></select></div>
+      <div class="form-group"><label class="form-label">Grade</label><input class="form-control" id="stGrade" placeholder="A/L"/></div>
+      <div class="form-group"><label class="form-label">Date of Birth</label><input class="form-control" id="stDOB" type="date"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="addStudent()">Add</button>
+      <button class="btn btn-outline" onclick="closeModal('addStudModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+async function loadAll() {
+  const [batches, subjects, enrollments, payments, lecturers, students] = await Promise.all([
+    API.listBatches(), API.listSubjects(), API.listEnrollments(),
+    API.listPayments(), fetch('../api/lecturers.php?action=list',{credentials:'include'}).then(r=>r.json()).then(d=>d.data||[]),
+    fetch('../api/students.php?action=list',{credentials:'include'}).then(r=>r.json()).then(d=>d.data||[])
+  ]);
+
+  // Stats
+  document.getElementById('statBatches').textContent  = batches.length;
+  document.getElementById('statSubjects').textContent = subjects.length;
+  document.getElementById('statEnroll').textContent   = enrollments.filter(e=>e.status==='active').length;
+  document.getElementById('statPending').textContent  = payments.filter(p=>p.status==='pending').length;
+
+  // Batch dropdown in enroll modal
+  document.getElementById('enBatch').innerHTML = batches.map(b=>`<option value="${b.batchID}">${b.batchName}</option>`).join('');
+
+  // Batches table
+  renderTable('batchTbody', batches, [
+    r=>`#${r.batchID}`, r=>r.batchName, r=>badge(r.mode),
+    r=>r.schedule||'—', r=>r.batchStartDate||'—', r=>r.batchEndDate||'—',
+    r=>`<button class="btn btn-outline btn-sm" onclick="editBatch(${r.batchID},'${r.batchName}','${r.mode}','${r.schedule||''}','${r.batchStartDate||''}','${r.batchEndDate||''}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="delBatch(${r.batchID},'${r.batchName}')">Delete</button>`
+  ]);
+
+  // Subjects table
+  renderTable('subjectTbody', subjects, [
+    r=>`#${r.subjectID}`, r=>r.name, r=>badge(r.level||'—'), r=>r.syllabus||'—',
+    r=>`<button class="btn btn-outline btn-sm" onclick="editSubject(${r.subjectID},'${r.name}','${r.level}','${r.syllabus||''}','${(r.subjectDescription||'').replace(/'/g,"\\'")}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="delSubject(${r.subjectID},'${r.name}')">Delete</button>`
+  ]);
+
+  // Enrollments table
+  renderTable('enrollTbody', enrollments, [
+    r=>`#${r.enrollmentID}`, r=>r.studentName||`#${r.studentID}`, r=>r.batchName||`#${r.batchID}`,
+    r=>r.enrollDate||'—', r=>badge(r.status),
+    r=>r.status==='active'
+      ? `<button class="btn btn-danger btn-sm" onclick="unenroll(${r.enrollmentID})">Unenroll</button>`
+      : `<button class="btn btn-success btn-sm" onclick="reenroll(${r.enrollmentID})">Re-enroll</button>`
+  ]);
+
+  // Payments table
+  renderTable('payTbody', payments, [
+    r=>`#${r.paymentID}`, r=>r.studentName||`#${r.studentID}`,
+    r=>`Rs ${parseFloat(r.amount).toLocaleString()}`,
+    r=>r.month?.slice(0,7)||'—', r=>badge(r.status),
+    r=>`${r.status==='pending'?`<button class="btn btn-success btn-sm" onclick="approvePayment(${r.paymentID})">Approve</button> `:''}
+        <button class="btn btn-danger btn-sm" onclick="deletePayment(${r.paymentID})">Delete</button>`
+  ]);
+
+  // Lecturers table
+  renderTable('lecTbody', lecturers, [
+    r=>`#${r.lecturerID}`, r=>r.name||'—', r=>r.email||'—',
+    r=>r.qualification||'—', r=>r.specialization||'—',
+    r=>badge(r.isActive?'Active':'Inactive'),
+    r=>`<button class="btn btn-danger btn-sm" onclick="delLecturer(${r.lecturerID},'${r.name}')">Delete</button>`
+  ]);
+
+  // Students table
+  renderTable('studTbody', students, [
+    r=>`#${r.studentID}`, r=>r.name||'—', r=>r.email||'—',
+    r=>badge(r.type||'online'), r=>r.grade||'—',
+    r=>badge(r.isActive?'Active':'Inactive'),
+    r=>`<button class="btn btn-danger btn-sm" onclick="delStudent(${r.studentID},'${r.name}')">Delete</button>`
+  ]);
+}
+
+// ─── BATCHES ──────────────────────────────────────────────
+function openBatchModal(id='',name='',mode='online',sched='',start='',end=''){
+  document.getElementById('editBatchID').value=id;
+  document.getElementById('bName').value=name;
+  document.getElementById('bMode').value=mode;
+  document.getElementById('bSched').value=sched;
+  document.getElementById('bStart').value=start;
+  document.getElementById('bEnd').value=end;
+  document.getElementById('batchTitle').textContent=id?'Edit Batch':'Create Batch';
+  openModal('batchModal');
+}
+function editBatch(id,name,mode,sched,start,end){openBatchModal(id,name,mode,sched,start,end);}
+async function saveBatch(){
+  const id=document.getElementById('editBatchID').value;
+  const d={batchName:document.getElementById('bName').value,mode:document.getElementById('bMode').value,
+    schedule:document.getElementById('bSched').value,batchStartDate:document.getElementById('bStart').value,batchEndDate:document.getElementById('bEnd').value};
+  if(!d.batchName){showToast('Name required','error');return;}
+  if(id) await API.updateBatch(id,d); else await API.createBatch(d);
+  showToast('Saved!'); closeModal('batchModal'); loadAll();
+}
+async function delBatch(id,name){confirmDelete(name,async()=>{await API.deleteBatch(id);showToast('Deleted');loadAll();});}
+
+// ─── SUBJECTS ─────────────────────────────────────────────
+function openSubjectModal(id='',name='',level='',syl='',desc=''){
+  document.getElementById('editSubjectID').value=id;
+  document.getElementById('sName').value=name;
+  document.getElementById('sLevel').value=level||'Ordinary';
+  document.getElementById('sSyllabus').value=syl;
+  document.getElementById('sDesc').value=desc;
+  document.getElementById('subjectTitle').textContent=id?'Edit Subject':'Add Subject';
+  openModal('subjectModal');
+}
+function editSubject(id,name,level,syl,desc){openSubjectModal(id,name,level,syl,desc);}
+async function saveSubject(){
+  const id=document.getElementById('editSubjectID').value;
+  const d={name:document.getElementById('sName').value,level:document.getElementById('sLevel').value,
+    syllabus:document.getElementById('sSyllabus').value,subjectDescription:document.getElementById('sDesc').value};
+  if(!d.name){showToast('Name required','error');return;}
+  if(id) await API.updateSubject(id,d); else await API.createSubject(d);
+  showToast('Saved!'); closeModal('subjectModal'); loadAll();
+}
+async function delSubject(id,name){confirmDelete(name,async()=>{await API.deleteSubject(id);showToast('Deleted');loadAll();});}
+
+// ─── ENROLLMENTS ──────────────────────────────────────────
+async function doEnroll(){
+  const d={studentID:parseInt(document.getElementById('enStudentID').value),batchID:parseInt(document.getElementById('enBatch').value),enrollDate:document.getElementById('enDate').value||new Date().toISOString().split('T')[0]};
+  if(!d.studentID||!d.batchID){showToast('Student ID and batch required','error');return;}
+  await API.enroll(d); showToast('Enrolled!'); closeModal('enrollModal'); loadAll();
+}
+async function unenroll(id){await API.unenroll(id);showToast('Unenrolled');loadAll();}
+async function reenroll(id){await API.reenroll(id);showToast('Re-enrolled');loadAll();}
+
+// ─── PAYMENTS ─────────────────────────────────────────────
+async function recordPayment(){
+  const d={studentID:parseInt(document.getElementById('pStudentID').value),amount:parseFloat(document.getElementById('pAmount').value),month:document.getElementById('pMonth').value+'-01',status:document.getElementById('pStatus').value};
+  if(!d.studentID||!d.amount){showToast('Required fields missing','error');return;}
+  await API.recordPayment(d); showToast('Recorded!'); closeModal('payModal'); loadAll();
+}
+async function approvePayment(id){await API.approvePayment(id);showToast('Approved!');loadAll();}
+async function deletePayment(id){confirmDelete('this payment',async()=>{await API.deletePayment(id);showToast('Deleted');loadAll();});}
+
+// ─── LECTURERS ────────────────────────────────────────────
+async function addLecturer(){
+  const d={name:document.getElementById('lName').value,email:document.getElementById('lEmail').value,password:document.getElementById('lPass').value,qualification:document.getElementById('lQual').value,specialization:document.getElementById('lSpec').value};
+  if(!d.name||!d.email){showToast('Name and email required','error');return;}
+  const res=await fetch('../api/lecturers.php?action=add',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+  const json=await res.json();
+  if(!json.success){showToast(json.message,'error');return;}
+  showToast('Lecturer added!'); closeModal('addLecModal'); loadAll();
+}
+async function delLecturer(id,name){confirmDelete(name,async()=>{const res=await fetch(`../api/lecturers.php?action=delete&id=${id}`,{method:'DELETE',credentials:'include'});const j=await res.json();if(j.success){showToast('Deleted');loadAll();}else showToast(j.message,'error');});}
+
+// ─── STUDENTS ─────────────────────────────────────────────
+async function addStudent(){
+  const d={name:document.getElementById('stName').value,email:document.getElementById('stEmail').value,password:document.getElementById('stPass').value,type:document.getElementById('stType').value,grade:document.getElementById('stGrade').value,dateOfBirth:document.getElementById('stDOB').value};
+  if(!d.name||!d.email){showToast('Name and email required','error');return;}
+  const res=await fetch('../api/students.php?action=add',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+  const json=await res.json();
+  if(!json.success){showToast(json.message,'error');return;}
+  showToast('Student added!'); closeModal('addStudModal'); loadAll();
+}
+async function delStudent(id,name){confirmDelete(name,async()=>{const res=await fetch(`../api/students.php?action=delete&id=${id}`,{method:'DELETE',credentials:'include'});const j=await res.json();if(j.success){showToast('Deleted');loadAll();}else showToast(j.message,'error');});}
+
+buildLayout([
+  { label:'Overview', items:[{icon:'📊',name:'Dashboard',active:true}]},
+  { label:'Operations', items:[
+    {icon:'🗓️',name:'Batches',href:'#'},
+    {icon:'📚',name:'Subjects',href:'#'},
+    {icon:'📋',name:'Enrollments',href:'#'},
+    {icon:'💳',name:'Payments',href:'payments.html'},
+    {icon:'🎓',name:'Lecturers',href:'#'},
+    {icon:'👨‍🎓',name:'Students',href:'#'},
+  ]},
+  { label:'Profile', items:[{icon:'👤',name:'My Profile',href:'profile.html'}]},
+], 'Manager Dashboard');
+
+authGuard().then(loadAll);
+</script>
+</body>
+</html>

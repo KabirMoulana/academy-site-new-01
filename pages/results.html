@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Exam Results — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-icon">📝</span><div class="stat-value" id="statTotal">…</div><div class="stat-label">Total Results</div></div>
+        <div class="stat-card"><span class="stat-icon">📈</span><div class="stat-value" id="statAvg">…</div><div class="stat-label">Average Marks</div></div>
+        <div class="stat-card"><span class="stat-icon">🏆</span><div class="stat-value" id="statTop">…</div><div class="stat-label">Top Score</div></div>
+        <div class="stat-card"><span class="stat-icon">📉</span><div class="stat-value" id="statLow">…</div><div class="stat-label">Lowest Score</div></div>
+      </div>
+
+      <div class="tab-section">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="res-all">All Results</button>
+          <button class="tab-btn" data-tab="res-upload">Upload Result</button>
+          <button class="tab-btn" data-tab="res-student">By Student</button>
+        </div>
+
+        <!-- ALL RESULTS -->
+        <div class="tab-content active" id="res-all">
+          <div class="section-header">
+            <div class="section-title">All Exam Results</div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <select class="form-control" id="subjectFilter" style="width:180px;" onchange="loadResults()">
+                <option value="">All Subjects</option>
+              </select>
+              <div class="search-bar"><span>🔍</span><input type="text" id="resSearch" placeholder="Search…" oninput="filterTable('resSearch','resTable')"/></div>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table id="resTable">
+              <thead><tr><th>ID</th><th>Student</th><th>Subject</th><th>Marks</th><th>Grade</th><th>Exam Date</th><th>Actions</th></tr></thead>
+              <tbody id="resTbody"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--grey);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- UPLOAD RESULT -->
+        <div class="tab-content" id="res-upload">
+          <div class="card">
+            <div class="section-title" style="margin-bottom:20px;">Upload Exam Result</div>
+            <div class="form-grid">
+              <div class="form-group"><label class="form-label">Student ID</label><input class="form-control" id="upStudentID" type="number" placeholder="1"/></div>
+              <div class="form-group"><label class="form-label">Subject</label><select class="form-control" id="upSubject"></select></div>
+              <div class="form-group"><label class="form-label">Lecturer ID</label><input class="form-control" id="upLecID" type="number" placeholder="1"/></div>
+              <div class="form-group"><label class="form-label">Marks (out of 100)</label><input class="form-control" id="upMarks" type="number" min="0" max="100" placeholder="75"/></div>
+              <div class="form-group"><label class="form-label">Grade</label><input class="form-control" id="upGrade" placeholder="B+" maxlength="5"/></div>
+              <div class="form-group"><label class="form-label">Exam Date</label><input class="form-control" id="upDate" type="date"/></div>
+            </div>
+            <div class="form-actions" style="margin-top:20px;">
+              <button class="btn btn-primary" onclick="uploadResult()">Upload Result</button>
+              <button class="btn btn-outline" onclick="autoGrade()">Auto-Grade from Marks</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BY STUDENT -->
+        <div class="tab-content" id="res-student">
+          <div class="card" style="margin-bottom:20px;">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Student ID</label>
+                <input class="form-control" id="studentResID" type="number" placeholder="Enter student ID…"/>
+              </div>
+            </div>
+            <div class="form-actions" style="margin-top:16px;">
+              <button class="btn btn-primary" onclick="loadStudentResults()">Load</button>
+            </div>
+          </div>
+          <div id="studentResSummary"></div>
+          <div class="table-wrapper" id="studentResTable" style="display:none;">
+            <table>
+              <thead><tr><th>Subject</th><th>Marks</th><th>Grade</th><th>Exam Date</th></tr></thead>
+              <tbody id="studentResTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- EDIT RESULT MODAL -->
+<div class="modal-overlay" id="editResModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Edit Result</h2>
+      <button class="modal-close" onclick="closeModal('editResModal')">✕</button>
+    </div>
+    <input type="hidden" id="editResID"/>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Marks</label><input class="form-control" id="editMarks" type="number" min="0" max="100"/></div>
+      <div class="form-group"><label class="form-label">Grade</label><input class="form-control" id="editGrade" maxlength="5"/></div>
+      <div class="form-group"><label class="form-label">Exam Date</label><input class="form-control" id="editResDate" type="date"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveResEdit()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('editResModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+let allResults = [];
+
+function calcGrade(marks) {
+  if (marks >= 75) return 'A';
+  if (marks >= 65) return 'B+';
+  if (marks >= 55) return 'B';
+  if (marks >= 45) return 'C+';
+  if (marks >= 35) return 'C';
+  return 'F';
+}
+
+function autoGrade() {
+  const marks = parseFloat(document.getElementById('upMarks').value);
+  if (isNaN(marks)) { showToast('Enter marks first', 'error'); return; }
+  document.getElementById('upGrade').value = calcGrade(marks);
+  showToast('Grade auto-calculated', 'gold');
+}
+
+async function loadDropdowns() {
+  const subjects = await API.listSubjects();
+  const opts     = subjects.map(s => `<option value="${s.subjectID}">${s.name}</option>`).join('');
+  document.getElementById('upSubject').innerHTML    = opts;
+  document.getElementById('subjectFilter').innerHTML = '<option value="">All Subjects</option>' +
+    subjects.map(s => `<option value="${s.subjectID}">${s.name}</option>`).join('');
+}
+
+async function loadResults() {
+  allResults = await API.listResults();
+  const subFilter = document.getElementById('subjectFilter').value;
+  const rows = subFilter ? allResults.filter(r => r.subjectID == subFilter) : allResults;
+
+  const marks = allResults.map(r => parseFloat(r.marks)).filter(m => !isNaN(m));
+  const avg   = marks.length ? (marks.reduce((a,b)=>a+b,0)/marks.length).toFixed(1) : '—';
+  const top   = marks.length ? Math.max(...marks) : '—';
+  const low   = marks.length ? Math.min(...marks) : '—';
+
+  document.getElementById('statTotal').textContent = allResults.length;
+  document.getElementById('statAvg').textContent   = avg;
+  document.getElementById('statTop').textContent   = top;
+  document.getElementById('statLow').textContent   = low;
+
+  renderTable('resTbody', rows, [
+    r => `#${r.resultID}`,
+    r => r.studentName || `#${r.studentID}`,
+    r => r.subjectName || '—',
+    r => `${r.marks} / 100`,
+    r => badge(r.resultGrade || '—'),
+    r => r.examDate || '—',
+    r => `<button class="btn btn-outline btn-sm" onclick="openEditRes(${r.resultID},${r.marks},'${r.resultGrade}','${r.examDate||''}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="delResult(${r.resultID})">Delete</button>`
+  ]);
+}
+
+async function uploadResult() {
+  const studentID  = parseInt(document.getElementById('upStudentID').value);
+  const subjectID  = parseInt(document.getElementById('upSubject').value);
+  const lecturerID = parseInt(document.getElementById('upLecID').value);
+  const marks      = parseFloat(document.getElementById('upMarks').value);
+  const resultGrade= document.getElementById('upGrade').value.trim();
+  const examDate   = document.getElementById('upDate').value;
+
+  if (!studentID || !lecturerID || isNaN(marks)) {
+    showToast('Student ID, Lecturer ID and Marks required', 'error'); return;
+  }
+  await API.uploadResult({ studentID, subjectID, lecturerID, marks, resultGrade, examDate });
+  showToast('Result uploaded!');
+  // Clear fields
+  ['upStudentID','upLecID','upMarks','upGrade','upDate'].forEach(id => document.getElementById(id).value = '');
+  loadResults();
+}
+
+function openEditRes(id, marks, grade, date) {
+  document.getElementById('editResID').value   = id;
+  document.getElementById('editMarks').value   = marks;
+  document.getElementById('editGrade').value   = grade;
+  document.getElementById('editResDate').value = date;
+  openModal('editResModal');
+}
+
+async function saveResEdit() {
+  const id    = document.getElementById('editResID').value;
+  const marks = parseFloat(document.getElementById('editMarks').value);
+  const grade = document.getElementById('editGrade').value;
+  const date  = document.getElementById('editResDate').value;
+  await API.editResult(id, { marks, resultGrade: grade, examDate: date });
+  showToast('Updated!');
+  closeModal('editResModal');
+  loadResults();
+}
+
+async function delResult(id) {
+  confirmDelete('this result', async () => {
+    await API.deleteResult(id);
+    showToast('Deleted');
+    loadResults();
+  });
+}
+
+async function loadStudentResults() {
+  const studentID = parseInt(document.getElementById('studentResID').value);
+  if (!studentID) { showToast('Enter a student ID', 'error'); return; }
+
+  const records = await API.listResults({ studentID });
+  const marks   = records.map(r => parseFloat(r.marks)).filter(m => !isNaN(m));
+  const avg     = marks.length ? (marks.reduce((a,b)=>a+b,0)/marks.length).toFixed(1) : '—';
+
+  document.getElementById('studentResSummary').innerHTML = `
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap;">
+        <div style="text-align:center;">
+          <div style="font-family:'Playfair Display',serif;font-size:48px;font-weight:900;color:var(--gold);">${avg}</div>
+          <div style="font-size:12px;color:var(--grey);text-transform:uppercase;letter-spacing:1px;">Average Marks</div>
+        </div>
+        <div style="flex:1;min-width:200px;">
+          ${records.map(r=>`<div class="progress-bar-wrap">
+            <div class="progress-label"><span>${r.subjectName||'Subject'}</span><span>${r.marks}/100 (${r.resultGrade||'—'})</span></div>
+            <div class="progress-track"><div class="progress-fill" style="width:${r.marks}%"></div></div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  renderTable('studentResTbody', records, [
+    r => r.subjectName || '—',
+    r => `${r.marks} / 100`,
+    r => badge(r.resultGrade || '—'),
+    r => r.examDate || '—'
+  ]);
+  document.getElementById('studentResTable').style.display = 'block';
+}
+
+buildLayout([
+  { label:'Academic', items:[
+    { icon:'🎥', name:'Sessions',   href:'sessions.html' },
+    { icon:'📋', name:'Attendance', href:'attendance.html' },
+    { icon:'📝', name:'Results',    active:true },
+  ]},
+  { label:'Back', items:[
+    { icon:'📊', name:'Dashboard',  href:'admin-dashboard.html' },
+  ]},
+], 'Exam Results');
+
+authGuard().then(() => { loadDropdowns(); loadResults(); });
+</script>
+</body>
+</html>

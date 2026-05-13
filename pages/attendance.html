@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Attendance — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-icon">✅</span><div class="stat-value" id="statPresent">…</div><div class="stat-label">Present Records</div></div>
+        <div class="stat-card"><span class="stat-icon">❌</span><div class="stat-value" id="statAbsent">…</div><div class="stat-label">Absent Records</div></div>
+        <div class="stat-card"><span class="stat-icon">📊</span><div class="stat-value" id="statRate">…</div><div class="stat-label">Overall Rate</div></div>
+        <div class="stat-card"><span class="stat-icon">📋</span><div class="stat-value" id="statTotal">…</div><div class="stat-label">Total Records</div></div>
+      </div>
+
+      <div class="tab-section">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="att-view">View Records</button>
+          <button class="tab-btn" data-tab="att-mark">Mark Attendance</button>
+          <button class="tab-btn" data-tab="att-student">By Student</button>
+        </div>
+
+        <!-- VIEW ALL -->
+        <div class="tab-content active" id="att-view">
+          <div class="section-header">
+            <div class="section-title">All Attendance Records</div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <select class="form-control" id="attFilter" style="width:140px;" onchange="loadAll()">
+                <option value="">All</option>
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+              </select>
+              <div class="search-bar"><span>🔍</span><input type="text" id="attSearch" placeholder="Search…" oninput="filterTable('attSearch','attTable')"/></div>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table id="attTable">
+              <thead><tr><th>ID</th><th>Student</th><th>Subject</th><th>Date</th><th>Status</th><th>Note</th><th>Actions</th></tr></thead>
+              <tbody id="attTbody"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--grey);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MARK ATTENDANCE -->
+        <div class="tab-content" id="att-mark">
+          <div class="card">
+            <div class="section-title" style="margin-bottom:20px;">Mark Attendance for a Session</div>
+            <div class="form-grid" style="margin-bottom:20px;">
+              <div class="form-group">
+                <label class="form-label">Select Session</label>
+                <select class="form-control" id="markSessSelect" onchange="loadSessionStudents()">
+                  <option value="">Choose a session…</option>
+                </select>
+              </div>
+            </div>
+            <div id="markStudentList" style="color:var(--grey);">Select a session to load students.</div>
+            <div class="form-actions" style="margin-top:20px;" id="markActions" style="display:none;">
+              <button class="btn btn-primary" onclick="submitAttendance()">Save Attendance</button>
+              <button class="btn btn-outline" onclick="markAll('present')">Mark All Present</button>
+              <button class="btn btn-outline" onclick="markAll('absent')">Mark All Absent</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BY STUDENT -->
+        <div class="tab-content" id="att-student">
+          <div class="card" style="margin-bottom:20px;">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Student ID</label>
+                <input class="form-control" id="studentIDInput" type="number" placeholder="Enter student ID…"/>
+              </div>
+            </div>
+            <div class="form-actions" style="margin-top:16px;">
+              <button class="btn btn-primary" onclick="loadStudentAttendance()">Load</button>
+            </div>
+          </div>
+          <div id="studentAttSummary"></div>
+          <div class="table-wrapper" id="studentAttTable" style="display:none;">
+            <table>
+              <thead><tr><th>Date</th><th>Subject</th><th>Status</th><th>Note</th></tr></thead>
+              <tbody id="studentAttTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editAttModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Edit Attendance</h2>
+      <button class="modal-close" onclick="closeModal('editAttModal')">✕</button>
+    </div>
+    <input type="hidden" id="editAttID"/>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-control" id="editAttStatus">
+          <option value="present">Present</option>
+          <option value="absent">Absent</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note</label>
+        <input class="form-control" id="editAttNote" placeholder="Optional note…"/>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveAttEdit()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('editAttModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+let sessionStudents = [];
+let currentSessID   = null;
+
+async function loadAll() {
+  const all    = await API.listAttendance();
+  const filter = document.getElementById('attFilter').value;
+  const rows   = filter ? all.filter(a => a.status === filter) : all;
+
+  const present = all.filter(a=>a.status==='present').length;
+  const absent  = all.filter(a=>a.status==='absent').length;
+  document.getElementById('statPresent').textContent = present;
+  document.getElementById('statAbsent').textContent  = absent;
+  document.getElementById('statTotal').textContent   = all.length;
+  document.getElementById('statRate').textContent    = all.length ? Math.round(present/all.length*100)+'%' : '—';
+
+  renderTable('attTbody', rows, [
+    r => `#${r.attendanceID}`,
+    r => r.studentName  || `#${r.studentID}`,
+    r => r.subjectName  || '—',
+    r => r.date         || '—',
+    r => badge(r.status),
+    r => r.attendanceNote || '—',
+    r => `<button class="btn btn-outline btn-sm" onclick="openEditAtt(${r.attendanceID},'${r.status}','${r.attendanceNote||''}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="delAtt(${r.attendanceID})">Delete</button>`
+  ]);
+}
+
+async function loadSessionList() {
+  const sessions = await API.listSessions();
+  document.getElementById('markSessSelect').innerHTML =
+    '<option value="">Choose a session…</option>' +
+    sessions.map(s => `<option value="${s.sessionID}">${s.date} — ${s.subjectName||''} (${s.batchName||''})</option>`).join('');
+}
+
+async function loadSessionStudents() {
+  currentSessID = parseInt(document.getElementById('markSessSelect').value);
+  if (!currentSessID) return;
+
+  // Get all enrollments to find students in this session's batch
+  const sessions    = await API.listSessions();
+  const sess        = sessions.find(s => s.sessionID === currentSessID);
+  const enrollments = await API.listEnrollments();
+  sessionStudents   = enrollments.filter(e => e.batchID == sess?.batchID && e.status === 'active');
+
+  const listEl = document.getElementById('markStudentList');
+  if (!sessionStudents.length) {
+    listEl.innerHTML = '<div style="color:var(--grey);">No active students in this batch.</div>';
+    document.getElementById('markActions').style.display = 'none';
+    return;
+  }
+
+  listEl.innerHTML = `
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Note</th></tr></thead>
+        <tbody>
+          ${sessionStudents.map(e => `
+            <tr>
+              <td>#${e.studentID}</td>
+              <td>${e.studentName || 'Student #'+e.studentID}</td>
+              <td><select class="form-control" id="att_status_${e.studentID}" style="width:120px;padding:5px 10px;font-size:12px;">
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+              </select></td>
+              <td><input class="form-control" id="att_note_${e.studentID}" style="padding:5px 10px;font-size:12px;" placeholder="Note…"/></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  document.getElementById('markActions').style.display = 'flex';
+}
+
+function markAll(status) {
+  sessionStudents.forEach(e => {
+    const el = document.getElementById(`att_status_${e.studentID}`);
+    if (el) el.value = status;
+  });
+}
+
+async function submitAttendance() {
+  if (!currentSessID) { showToast('Select a session', 'error'); return; }
+  const records = sessionStudents.map(e => ({
+    studentID:      e.studentID,
+    sessionID:      currentSessID,
+    status:         document.getElementById(`att_status_${e.studentID}`)?.value || 'present',
+    attendanceNote: document.getElementById(`att_note_${e.studentID}`)?.value || ''
+  }));
+  await API.markAttendance(records);
+  showToast('Attendance saved!');
+  loadAll();
+}
+
+function openEditAtt(id, status, note) {
+  document.getElementById('editAttID').value     = id;
+  document.getElementById('editAttStatus').value = status;
+  document.getElementById('editAttNote').value   = note;
+  openModal('editAttModal');
+}
+
+async function saveAttEdit() {
+  const id     = document.getElementById('editAttID').value;
+  const status = document.getElementById('editAttStatus').value;
+  const note   = document.getElementById('editAttNote').value;
+  await API.editAttendance(id, { status, attendanceNote: note });
+  showToast('Updated!');
+  closeModal('editAttModal');
+  loadAll();
+}
+
+async function delAtt(id) {
+  confirmDelete('this record', async () => {
+    await API.deleteAttendance(id);
+    showToast('Deleted');
+    loadAll();
+  });
+}
+
+async function loadStudentAttendance() {
+  const studentID = parseInt(document.getElementById('studentIDInput').value);
+  if (!studentID) { showToast('Enter a student ID', 'error'); return; }
+
+  const records = await API.listAttendance({ studentID });
+  const total   = records.length;
+  const present = records.filter(r => r.status === 'present').length;
+  const pct     = total ? Math.round(present/total*100) : 0;
+
+  document.getElementById('studentAttSummary').innerHTML = `
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;gap:32px;align-items:center;">
+        <div style="text-align:center;">
+          <div style="font-family:'Playfair Display',serif;font-size:48px;font-weight:900;color:var(--gold);">${pct}%</div>
+          <div style="font-size:12px;color:var(--grey);text-transform:uppercase;letter-spacing:1px;">Attendance Rate</div>
+        </div>
+        <div style="flex:1;">
+          <div class="progress-bar-wrap">
+            <div class="progress-label"><span>Overall</span><span>${present} / ${total}</span></div>
+            <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  renderTable('studentAttTbody', records, [
+    r => r.sessionDate || r.date || '—',
+    r => r.subjectName || '—',
+    r => badge(r.status),
+    r => r.attendanceNote || '—'
+  ]);
+  document.getElementById('studentAttTable').style.display = 'block';
+}
+
+buildLayout([
+  { label:'Academic', items:[
+    { icon:'🎥', name:'Sessions',   href:'sessions.html' },
+    { icon:'📋', name:'Attendance', active:true },
+    { icon:'📝', name:'Results',    href:'results.html' },
+  ]},
+  { label:'Back', items:[
+    { icon:'📊', name:'Dashboard',  href:'admin-dashboard.html' },
+  ]},
+], 'Attendance');
+
+authGuard().then(() => { loadAll(); loadSessionList(); });
+</script>
+</body>
+</html>

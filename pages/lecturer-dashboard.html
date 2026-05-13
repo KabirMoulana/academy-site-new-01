@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lecturer Dashboard — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-icon">🎥</span><div class="stat-value" id="statSess">…</div><div class="stat-label">Total Sessions</div></div>
+        <div class="stat-card"><span class="stat-icon">📝</span><div class="stat-value" id="statRes">…</div><div class="stat-label">Results Uploaded</div></div>
+        <div class="stat-card"><span class="stat-icon">📚</span><div class="stat-value" id="statMat">…</div><div class="stat-label">Materials Uploaded</div></div>
+        <div class="stat-card"><span class="stat-icon">💬</span><div class="stat-value" id="statFb">…</div><div class="stat-label">Feedback Received</div></div>
+      </div>
+
+      <div class="tab-section">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="lec-sessions">Sessions</button>
+          <button class="tab-btn" data-tab="lec-attendance">Attendance</button>
+          <button class="tab-btn" data-tab="lec-results">Results</button>
+          <button class="tab-btn" data-tab="lec-materials">Materials</button>
+          <button class="tab-btn" data-tab="lec-feedback">Feedback</button>
+        </div>
+
+        <!-- SESSIONS -->
+        <div class="tab-content active" id="lec-sessions">
+          <div class="section-header">
+            <div class="section-title">Class Sessions</div>
+            <button class="btn btn-primary" onclick="openModal('addSessionModal')">+ Add Session</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Date</th><th>Subject</th><th>Batch</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="sessTbody"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--grey);">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- ATTENDANCE -->
+        <div class="tab-content" id="lec-attendance">
+          <div class="section-header">
+            <div class="section-title">Mark Attendance</div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <select class="form-control" id="sessSelect" style="width:220px;" onchange="loadStudentsForSession()">
+                <option value="">Select Session…</option>
+              </select>
+              <button class="btn btn-primary" onclick="saveAttendance()">Save Attendance</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Note</th></tr></thead>
+            <tbody id="attTbody"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--grey);">Select a session above.</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="tab-content" id="lec-results">
+          <div class="section-header">
+            <div class="section-title">Exam Results</div>
+            <button class="btn btn-primary" onclick="openModal('addResultModal')">+ Upload Result</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Student</th><th>Subject</th><th>Marks</th><th>Grade</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody id="resultsTbody"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--grey);">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- MATERIALS -->
+        <div class="tab-content" id="lec-materials">
+          <div class="section-header">
+            <div class="section-title">Study Materials</div>
+            <button class="btn btn-primary" onclick="openModal('addMaterialModal')">+ Upload Material</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Title</th><th>Subject</th><th>Type</th><th>Uploaded</th><th>Actions</th></tr></thead>
+            <tbody id="matTbody"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--grey);">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- FEEDBACK -->
+        <div class="tab-content" id="lec-feedback">
+          <div class="section-header"><div class="section-title">Student Feedback</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Student</th><th>Subject</th><th>Rating</th><th>Comment</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody id="feedTbody"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--grey);">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SESSION MODAL -->
+<div class="modal-overlay" id="addSessionModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title" id="sessModalTitle">Add Session</h2><button class="modal-close" onclick="closeModal('addSessionModal')">✕</button></div>
+    <input type="hidden" id="editSessID"/>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Subject</label><select class="form-control" id="sessSubject"></select></div>
+      <div class="form-group"><label class="form-label">Batch</label><select class="form-control" id="sessBatch"></select></div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-control" type="date" id="sessDate"/></div>
+      <div class="form-group"><label class="form-label">Mode</label><select class="form-control" id="sessMode"><option value="online">Online</option><option value="physical">Physical</option></select></div>
+      <div class="form-group"><label class="form-label">Class Link (optional)</label><input class="form-control" id="sessLink" placeholder="https://meet.google.com/…"/></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-control" id="sessStatus"><option value="Upcoming">Upcoming</option><option value="Completed">Completed</option></select>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveSession()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('addSessionModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD RESULT MODAL -->
+<div class="modal-overlay" id="addResultModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title" id="resModalTitle">Upload Result</h2><button class="modal-close" onclick="closeModal('addResultModal')">✕</button></div>
+    <input type="hidden" id="editResID"/>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Student ID</label><input class="form-control" id="resStudent" type="number" placeholder="1"/></div>
+      <div class="form-group"><label class="form-label">Subject</label><select class="form-control" id="resSubject"></select></div>
+      <div class="form-group"><label class="form-label">Marks (/ 100)</label><input class="form-control" id="resMarks" type="number" placeholder="75"/></div>
+      <div class="form-group"><label class="form-label">Grade</label><input class="form-control" id="resGrade" placeholder="B+"/></div>
+      <div class="form-group"><label class="form-label">Exam Date</label><input class="form-control" id="resDate" type="date"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveResult()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('addResultModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD MATERIAL MODAL -->
+<div class="modal-overlay" id="addMaterialModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title" id="matModalTitle">Upload Material</h2><button class="modal-close" onclick="closeModal('addMaterialModal')">✕</button></div>
+    <input type="hidden" id="editMatID"/>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Title</label><input class="form-control" id="matTitle" placeholder="Algebra Notes Ch.5"/></div>
+      <div class="form-group"><label class="form-label">Subject</label><select class="form-control" id="matSubject"></select></div>
+      <div class="form-group"><label class="form-label">File Type</label>
+        <select class="form-control" id="matType"><option>PDF</option><option>PPTX</option><option>DOCX</option><option>Video</option><option>Other</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">File URL</label><input class="form-control" id="matURL" placeholder="https://…"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveMaterial()">Upload</button>
+      <button class="btn btn-outline" onclick="closeModal('addMaterialModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+let lecturerID = null;
+let allSessions = [];
+let enrolledStudents = [];
+
+async function getLecturerID(userID) {
+  try {
+    const r = await fetch(`../api/lecturers.php?action=getByUser&userID=${userID}`, { credentials:'include' });
+    const d = await r.json();
+    return d.success ? d.data.lecturerID : userID;
+  } catch { return userID; }
+}
+
+async function loadDashboard() {
+  const user = await API.me();
+  lecturerID = await getLecturerID(user.userID);
+
+  const [sessions, results, materials, feedback, subjects, batches] = await Promise.all([
+    API.listSessions({ lecturerID }),
+    API.listResults({ lecturerID }),
+    API.listMaterials(),
+    API.listFeedback(),
+    API.listSubjects(),
+    API.listBatches()
+  ]);
+
+  allSessions = sessions;
+
+  // Stats
+  document.getElementById('statSess').textContent = sessions.length;
+  document.getElementById('statRes').textContent  = results.length;
+  document.getElementById('statMat').textContent  = materials.length;
+  document.getElementById('statFb').textContent   = feedback.length;
+
+  // Populate select dropdowns
+  const subOpts = subjects.map(s=>`<option value="${s.subjectID}">${s.name}</option>`).join('');
+  ['sessSubject','resSubject','matSubject'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = subOpts;
+  });
+  document.getElementById('sessBatch').innerHTML = batches.map(b=>`<option value="${b.batchID}">${b.batchName}</option>`).join('');
+
+  // Populate session selector for attendance
+  document.getElementById('sessSelect').innerHTML =
+    '<option value="">Select Session…</option>' +
+    sessions.map(s=>`<option value="${s.sessionID}">${s.date} — ${s.subjectName} (${s.batchName})</option>`).join('');
+
+  // Sessions table
+  renderTable('sessTbody', sessions, [
+    r=>r.date, r=>r.subjectName||'—', r=>r.batchName||'—',
+    r=>badge(r.sessionStatus||'Upcoming'),
+    r=>`<button class="btn btn-success btn-sm" onclick="openUploadLink(${r.sessionID})">Link</button>
+        <button class="btn btn-outline btn-sm" onclick="openUploadRec(${r.sessionID})">Rec.</button>
+        <button class="btn btn-danger btn-sm" onclick="delSess(${r.sessionID})">Delete</button>`
+  ]);
+
+  // Results table
+  renderTable('resultsTbody', results, [
+    r=>r.studentName||`#${r.studentID}`, r=>r.subjectName||'—',
+    r=>r.marks, r=>badge(r.resultGrade||'—'), r=>r.examDate||'—',
+    r=>`<button class="btn btn-danger btn-sm" onclick="delResult(${r.resultID})">Delete</button>`
+  ]);
+
+  // Materials table
+  renderTable('matTbody', materials, [
+    r=>r.title, r=>r.subjectName||'—', r=>r.fileType||'—',
+    r=>r.uploadedAt?.split('T')[0]||'—',
+    r=>`<button class="btn btn-outline btn-sm" onclick="editMat(${r.materialID},'${r.title}','${r.subjectID}','${r.fileType}','${r.fileURL||''}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="delMat(${r.materialID})">Delete</button>`
+  ]);
+
+  // Feedback table
+  renderTable('feedTbody', feedback, [
+    r=>r.studentName||'—', r=>r.subjectName||'—',
+    r=>'⭐'.repeat(parseInt(r.feedbackRating)||1),
+    r=>r.comment||'—', r=>r.givenAt?.split('T')[0]||'—',
+    r=>badge(r.feedbackStatus||'Pending')
+  ]);
+
+  buildLayout([
+    { label:'Overview', items:[{icon:'📊',name:'Dashboard',active:true}]},
+    { label:'Teaching', items:[
+      {icon:'🎥',name:'Sessions',href:'#'},
+      {icon:'📋',name:'Attendance',href:'#'},
+      {icon:'📝',name:'Results',href:'#'},
+      {icon:'📚',name:'Materials',href:'#'},
+      {icon:'💬',name:'Feedback',href:'#'},
+    ]},
+    { label:'Profile', items:[{icon:'👤',name:'My Profile',href:'profile.html'}]},
+  ], 'Lecturer Dashboard');
+}
+
+// ─── SESSIONS ─────────────────────────────────────────────
+async function saveSession() {
+  const id = document.getElementById('editSessID').value;
+  const d = {
+    subjectID:  parseInt(document.getElementById('sessSubject').value),
+    batchID:    parseInt(document.getElementById('sessBatch').value),
+    lecturerID, date: document.getElementById('sessDate').value,
+    classLink:  document.getElementById('sessLink').value,
+    sessionStatus: document.getElementById('sessStatus').value
+  };
+  if (!d.date) { showToast('Date required','error'); return; }
+  if (id) await API.deleteSession(id); // simple replace
+  await API.createSession(d);
+  showToast('Session saved!'); closeModal('addSessionModal');
+  document.getElementById('editSessID').value='';
+  loadDashboard();
+}
+async function delSess(id){confirmDelete('this session',async()=>{await API.deleteSession(id);showToast('Deleted');loadDashboard();});}
+
+function openUploadLink(id){
+  const link=prompt('Enter class link URL:');
+  if(link) API.uploadLink(id,{classLink:link}).then(()=>{showToast('Link uploaded!');loadDashboard();});
+}
+function openUploadRec(id){
+  const rec=prompt('Enter recording URL:');
+  if(rec) API.uploadRecording(id,{recording:rec}).then(()=>{showToast('Recording uploaded!');loadDashboard();});
+}
+
+// ─── ATTENDANCE ───────────────────────────────────────────
+async function loadStudentsForSession() {
+  const sessID = parseInt(document.getElementById('sessSelect').value);
+  if (!sessID) return;
+  const sess = allSessions.find(s=>s.sessionID==sessID);
+  if (!sess) return;
+  // Load students enrolled in this batch
+  const enrolments = await API.listEnrollments();
+  const batchStudents = enrolments.filter(e=>e.batchID==sess.batchID && e.status==='active');
+  if (!batchStudents.length) {
+    document.getElementById('attTbody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--grey);">No students enrolled in this batch.</td></tr>';
+    return;
+  }
+  document.getElementById('attTbody').innerHTML = batchStudents.map(e=>`
+    <tr>
+      <td>#${e.studentID}</td>
+      <td>${e.studentName||'Student #'+e.studentID}</td>
+      <td><select class="form-control" id="att_${e.studentID}" style="width:120px;padding:5px 10px;font-size:12px;">
+        <option value="present">Present</option><option value="absent">Absent</option>
+      </select></td>
+      <td><input class="form-control" id="note_${e.studentID}" style="padding:5px 10px;font-size:12px;" placeholder="Note…"/></td>
+    </tr>`).join('');
+  enrolledStudents = batchStudents;
+}
+
+async function saveAttendance() {
+  const sessID = parseInt(document.getElementById('sessSelect').value);
+  if (!sessID) { showToast('Select a session first','error'); return; }
+  const records = enrolledStudents.map(e=>({
+    studentID: e.studentID,
+    sessionID: sessID,
+    status:    document.getElementById(`att_${e.studentID}`)?.value || 'present',
+    attendanceNote: document.getElementById(`note_${e.studentID}`)?.value || ''
+  }));
+  await API.markAttendance(records);
+  showToast('Attendance saved!');
+}
+
+// ─── RESULTS ──────────────────────────────────────────────
+async function saveResult() {
+  const id = document.getElementById('editResID').value;
+  const d  = {
+    studentID:  parseInt(document.getElementById('resStudent').value),
+    subjectID:  parseInt(document.getElementById('resSubject').value),
+    lecturerID,
+    marks:      parseFloat(document.getElementById('resMarks').value),
+    resultGrade:document.getElementById('resGrade').value,
+    examDate:   document.getElementById('resDate').value
+  };
+  if (!d.studentID || !d.marks) { showToast('Student ID and marks required','error'); return; }
+  if (id) await API.editResult(id,d); else await API.uploadResult(d);
+  showToast('Result saved!'); closeModal('addResultModal');
+  document.getElementById('editResID').value='';
+  loadDashboard();
+}
+async function delResult(id){confirmDelete('this result',async()=>{await API.deleteResult(id);showToast('Deleted');loadDashboard();});}
+
+// ─── MATERIALS ────────────────────────────────────────────
+function editMat(id,title,subjectID,fileType,fileURL){
+  document.getElementById('editMatID').value=id;
+  document.getElementById('matTitle').value=title;
+  document.getElementById('matSubject').value=subjectID;
+  document.getElementById('matType').value=fileType;
+  document.getElementById('matURL').value=fileURL;
+  document.getElementById('matModalTitle').textContent='Edit Material';
+  openModal('addMaterialModal');
+}
+async function saveMaterial(){
+  const id=document.getElementById('editMatID').value;
+  const d={
+    subjectID: parseInt(document.getElementById('matSubject').value),
+    lecturerID,
+    title:     document.getElementById('matTitle').value,
+    fileURL:   document.getElementById('matURL').value,
+    fileType:  document.getElementById('matType').value
+  };
+  if(!d.title){showToast('Title required','error');return;}
+  if(id) await API.editMaterial(id,d); else await API.uploadMaterial(d);
+  showToast('Material saved!'); closeModal('addMaterialModal');
+  document.getElementById('editMatID').value='';
+  loadDashboard();
+}
+async function delMat(id){confirmDelete('this material',async()=>{await API.deleteMaterial(id);showToast('Deleted');loadDashboard();});}
+
+authGuard().then(loadDashboard);
+</script>
+</body>
+</html>

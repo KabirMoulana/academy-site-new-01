@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>My Profile — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <div class="profile-hero">
+        <div class="profile-avatar-lg" id="profileInitials">…</div>
+        <div class="profile-info">
+          <div class="name" id="profileName">Loading…</div>
+          <div class="role-badge" id="profileRole">—</div>
+          <div class="email" id="profileEmail">—</div>
+        </div>
+        <div style="margin-left:auto;">
+          <button class="btn btn-outline" onclick="openModal('editProfileModal')">✏ Edit Profile</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <div class="card">
+          <div class="section-title" style="margin-bottom:20px;">Account Information</div>
+          <table style="width:100%;">
+            <tr><td style="padding:10px 0;color:var(--grey);font-size:12px;text-transform:uppercase;letter-spacing:1px;width:140px;">Full Name</td><td style="padding:10px 0;font-size:14px;" id="infoName">—</td></tr>
+            <tr><td style="padding:10px 0;color:var(--grey);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Email</td><td style="padding:10px 0;font-size:14px;" id="infoEmail">—</td></tr>
+            <tr><td style="padding:10px 0;color:var(--grey);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Role</td><td style="padding:10px 0;font-size:14px;" id="infoRole">—</td></tr>
+            <tr><td style="padding:10px 0;color:var(--grey);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Status</td><td style="padding:10px 0;"><span class="badge badge-active">Active</span></td></tr>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="section-title" style="margin-bottom:20px;">Reset Password</div>
+          <div class="form-group" style="margin-bottom:14px;"><label class="form-label">Current Password</label><input class="form-control" id="currPass" type="password" placeholder="••••••••"/></div>
+          <div class="form-group" style="margin-bottom:14px;"><label class="form-label">New Password</label><input class="form-control" id="newPass" type="password" placeholder="••••••••"/></div>
+          <div class="form-group" style="margin-bottom:20px;"><label class="form-label">Confirm New Password</label><input class="form-control" id="confPass" type="password" placeholder="••••••••"/></div>
+          <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="card" style="margin-top:24px;">
+        <div class="section-header">
+          <div class="section-title">Notifications</div>
+          <button class="btn btn-outline btn-sm" onclick="markAllRead()">Mark all read</button>
+        </div>
+        <div id="notifList"><div style="padding:20px;color:var(--grey);">Loading…</div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div class="modal-overlay" id="editProfileModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Edit Profile</h2><button class="modal-close" onclick="closeModal('editProfileModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Full Name</label><input class="form-control" id="editName" placeholder="Your name"/></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="editEmail" type="email" placeholder="email@educore.lk"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+      <button class="btn btn-outline" onclick="closeModal('editProfileModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const roleLabels = {
+  admin:'Administrator', manager:'Manager', director:'Director',
+  lecturer:'Lecturer', student:'Student', parent:'Parent', receptionist:'Receptionist'
+};
+const roleHome = {
+  admin:'admin-dashboard.html', manager:'manager-dashboard.html',
+  director:'director-dashboard.html', lecturer:'lecturer-dashboard.html',
+  student:'student-dashboard.html', parent:'parent-dashboard.html',
+  receptionist:'receptionist-dashboard.html'
+};
+
+function populateProfile(user) {
+  const initials = user.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const label    = roleLabels[user.role] || user.role;
+  document.getElementById('profileInitials').textContent = initials;
+  document.getElementById('profileName').textContent     = user.name;
+  document.getElementById('profileRole').textContent     = label;
+  document.getElementById('profileEmail').textContent    = user.email;
+  document.getElementById('infoName').textContent        = user.name;
+  document.getElementById('infoEmail').textContent       = user.email;
+  document.getElementById('infoRole').textContent        = label;
+  document.getElementById('editName').value              = user.name;
+  document.getElementById('editEmail').value             = user.email;
+}
+
+async function saveProfile() {
+  const name  = document.getElementById('editName').value.trim();
+  const email = document.getElementById('editEmail').value.trim();
+  if (!name || !email) { showToast('Name and email required', 'error'); return; }
+  await API.updateProfile(name, email);
+  showToast('Profile updated!');
+  closeModal('editProfileModal');
+  const user = await API.me();
+  populateProfile(user);
+}
+
+async function changePassword() {
+  const curr = document.getElementById('currPass').value;
+  const np   = document.getElementById('newPass').value;
+  const conf = document.getElementById('confPass').value;
+  if (!curr || !np || !conf) { showToast('All fields required', 'error'); return; }
+  if (np !== conf) { showToast('New passwords do not match', 'error'); return; }
+  if (np.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+  await API.resetPassword(curr, np);
+  showToast('Password updated!');
+  document.getElementById('currPass').value = '';
+  document.getElementById('newPass').value  = '';
+  document.getElementById('confPass').value = '';
+}
+
+async function loadNotifications() {
+  const notifs = await API.listNotifications();
+  const el = document.getElementById('notifList');
+  if (!notifs.length) { el.innerHTML = '<div style="padding:20px;color:var(--grey);">No notifications.</div>'; return; }
+  el.innerHTML = notifs.map(n => `
+    <div class="notif-item ${n.isRead ? '' : 'unread'}">
+      <div class="notif-dot ${n.isRead ? 'read' : ''}"></div>
+      <div style="flex:1;">
+        <div class="notif-text">${n.message}</div>
+        <div class="notif-time">${n.sentAt?.split('T')[0] || '—'} · ${n.notificationType || 'General'}</div>
+      </div>
+      ${!n.isRead ? `<button class="btn btn-outline btn-sm" onclick="markRead(${n.notificationID})">Mark read</button>` : ''}
+      <button class="btn btn-danger btn-sm" onclick="delNotif(${n.notificationID})">✕</button>
+    </div>`).join('');
+}
+
+async function markRead(id) {
+  await API.markRead(id);
+  loadNotifications();
+}
+async function markAllRead() {
+  await API.markAllRead();
+  showToast('All marked as read');
+  loadNotifications();
+}
+async function delNotif(id) {
+  await API.deleteNotification(id);
+  loadNotifications();
+}
+
+authGuard().then(user => {
+  populateProfile(user);
+  loadNotifications();
+  buildLayout([
+    { label:'Overview', items:[{ icon:'📊', name:'Dashboard', href: roleHome[user.role]||'#' }]},
+    { label:'Profile',  items:[{ icon:'👤', name:'My Profile', active:true }]},
+  ], 'My Profile');
+});
+</script>
+</body>
+</html>

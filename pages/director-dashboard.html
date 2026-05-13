@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Director Dashboard — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-icon">👨‍🎓</span><div class="stat-value" id="statStudents">…</div><div class="stat-label">Total Students</div></div>
+        <div class="stat-card"><span class="stat-icon">🎓</span><div class="stat-value" id="statLecturers">…</div><div class="stat-label">Lecturers</div></div>
+        <div class="stat-card"><span class="stat-icon">📚</span><div class="stat-value" id="statSubjects">…</div><div class="stat-label">Subjects</div></div>
+        <div class="stat-card"><span class="stat-icon">🗓️</span><div class="stat-value" id="statBatches">…</div><div class="stat-label">Batches</div></div>
+      </div>
+
+      <div class="tab-section">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="dir-overview">Overview</button>
+          <button class="tab-btn" data-tab="dir-staff">Staff</button>
+          <button class="tab-btn" data-tab="dir-announcements">Announcements</button>
+          <button class="tab-btn" data-tab="dir-feedback">Feedback</button>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div class="tab-content active" id="dir-overview">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+            <div class="card">
+              <div class="section-title" style="margin-bottom:20px;">Performance Summary</div>
+              <div class="progress-bar-wrap"><div class="progress-label"><span>Active Enrollments</span><span id="pEnroll">…</span></div><div class="progress-track"><div class="progress-fill" id="pEnrollBar" style="width:0%"></div></div></div>
+              <div class="progress-bar-wrap"><div class="progress-label"><span>Approved Payments</span><span id="pPay">…</span></div><div class="progress-track"><div class="progress-fill" id="pPayBar" style="width:0%"></div></div></div>
+              <div class="progress-bar-wrap"><div class="progress-label"><span>Published Announcements</span><span id="pAnn">…</span></div><div class="progress-track"><div class="progress-fill" id="pAnnBar" style="width:0%"></div></div></div>
+              <div class="progress-bar-wrap"><div class="progress-label"><span>Completed Sessions</span><span id="pSess">…</span></div><div class="progress-track"><div class="progress-fill" id="pSessBar" style="width:0%"></div></div></div>
+            </div>
+            <div class="card">
+              <div class="section-title" style="margin-bottom:20px;">Leaderboard — Top 5</div>
+              <div id="lbPreview"><div style="color:var(--grey);">Loading…</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STAFF -->
+        <div class="tab-content" id="dir-staff">
+          <div class="section-header"><div class="section-title">All Staff</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+            <tbody id="staffTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- ANNOUNCEMENTS -->
+        <div class="tab-content" id="dir-announcements">
+          <div class="section-header">
+            <div class="section-title">Announcements</div>
+            <button class="btn btn-primary" onclick="openModal('annModal')">+ Post</button>
+          </div>
+          <div id="annList"><div style="color:var(--grey);padding:20px;">Loading…</div></div>
+        </div>
+
+        <!-- FEEDBACK -->
+        <div class="tab-content" id="dir-feedback">
+          <div class="section-header"><div class="section-title">All Feedback</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Student</th><th>Subject</th><th>Rating</th><th>Comment</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody id="feedTbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ANNOUNCEMENT MODAL -->
+<div class="modal-overlay" id="annModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Post Announcement</h2><button class="modal-close" onclick="closeModal('annModal')">✕</button></div>
+    <div class="form-grid" style="grid-template-columns:1fr;">
+      <div class="form-group"><label class="form-label">Title</label><input class="form-control" id="annTitle" placeholder="Title…"/></div>
+      <div class="form-group"><label class="form-label">Content</label><textarea class="form-control" id="annContent" rows="4" style="resize:vertical;"></textarea></div>
+      <div class="form-group"><label class="form-label">Status</label><select class="form-control" id="annStatus"><option value="Published">Published</option><option value="Draft">Draft</option></select></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="postAnn()">Post</button>
+      <button class="btn btn-outline" onclick="closeModal('annModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const rankCls = ['gold','silver','bronze'];
+
+async function loadDashboard() {
+  const [students, lecturers, subjects, batches, enrollments, payments, announcements, sessions, feedback, lb] = await Promise.all([
+    API.listUsers('student'), API.listUsers('lecturer'), API.listSubjects(),
+    API.listBatches(), API.listEnrollments(), API.listPayments(),
+    API.listAnnouncements(), API.listSessions(), API.listFeedback(),
+    API.leaderboard()
+  ]);
+
+  // Stats
+  document.getElementById('statStudents').textContent  = students.length;
+  document.getElementById('statLecturers').textContent = lecturers.length;
+  document.getElementById('statSubjects').textContent  = subjects.length;
+  document.getElementById('statBatches').textContent   = batches.length;
+
+  // Progress bars
+  const activeEnroll = enrollments.filter(e=>e.status==='active').length;
+  const approvedPay  = payments.filter(p=>p.status==='approved').length;
+  const pubAnn       = announcements.filter(a=>a.announcementStatus==='Published').length;
+  const compSess     = sessions.filter(s=>s.sessionStatus==='Completed').length;
+
+  const setBar = (id, barId, val, max) => {
+    document.getElementById(id).textContent = val;
+    document.getElementById(barId).style.width = max ? Math.round(val/max*100)+'%' : '0%';
+  };
+  setBar('pEnroll','pEnrollBar', activeEnroll, enrollments.length||1);
+  setBar('pPay','pPayBar', approvedPay, payments.length||1);
+  setBar('pAnn','pAnnBar', pubAnn, announcements.length||1);
+  setBar('pSess','pSessBar', compSess, sessions.length||1);
+
+  // Leaderboard preview
+  document.getElementById('lbPreview').innerHTML = lb.slice(0,5).map((r,i)=>`
+    <div class="lb-item">
+      <div class="lb-rank ${rankCls[i]||''}">${i+1}</div>
+      <div class="lb-avatar">${(r.studentName||'??').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+      <div class="lb-name">${r.studentName||'Student'}</div>
+      <div class="lb-points">${r.totalPoints} pts</div>
+    </div>`).join('') || '<div style="color:var(--grey);">No data.</div>';
+
+  // Staff table
+  const staff = [...students,...lecturers,...await API.listUsers('manager'),...await API.listUsers('admin'),...await API.listUsers('receptionist')];
+  renderTable('staffTbody', staff, [
+    r=>r.name||'—', r=>r.email||'—', r=>badge(r.role), r=>badge(r.isActive?'Active':'Inactive')
+  ]);
+
+  // Announcements
+  const annEl = document.getElementById('annList');
+  annEl.innerHTML = announcements.length
+    ? announcements.map(a=>`
+      <div class="announcement-card">
+        <div style="display:flex;justify-content:space-between;">
+          <div class="ann-title">${a.title}</div>
+          <button class="btn btn-danger btn-sm" onclick="delAnn(${a.announcementID})">Delete</button>
+        </div>
+        <p class="ann-content">${a.content||''}</p>
+        <div class="ann-meta"><span>📅 ${(a.postedAt||'').split('T')[0]}</span>${badge(a.announcementStatus)}</div>
+      </div>`).join('')
+    : '<p style="color:var(--grey);">No announcements.</p>';
+
+  // Feedback
+  renderTable('feedTbody', feedback, [
+    r=>r.studentName||'—', r=>r.subjectName||'—',
+    r=>'⭐'.repeat(parseInt(r.feedbackRating)||1),
+    r=>r.comment||'—', r=>r.givenAt?.split('T')[0]||'—',
+    r=>badge(r.feedbackStatus||'Pending')
+  ]);
+}
+
+async function postAnn() {
+  const title   = document.getElementById('annTitle').value.trim();
+  const content = document.getElementById('annContent').value.trim();
+  const status  = document.getElementById('annStatus').value;
+  if (!title) { showToast('Title required','error'); return; }
+  await API.postAnnouncement({ title, content, announcementStatus: status });
+  showToast('Announcement posted!'); closeModal('annModal'); loadDashboard();
+}
+async function delAnn(id) {
+  confirmDelete('this announcement', async () => {
+    await API.deleteAnnouncement(id); showToast('Deleted'); loadDashboard();
+  });
+}
+
+buildLayout([
+  { label:'Overview', items:[{icon:'📊',name:'Dashboard',active:true}]},
+  { label:'Executive', items:[
+    {icon:'👥',name:'Staff',href:'#'},
+    {icon:'📢',name:'Announcements',href:'#'},
+    {icon:'💬',name:'Feedback',href:'#'},
+    {icon:'🏆',name:'Leaderboard',href:'leaderboard.html'},
+  ]},
+  { label:'Profile', items:[{icon:'👤',name:'My Profile',href:'profile.html'}]},
+], 'Director Dashboard');
+
+authGuard().then(loadDashboard);
+</script>
+</body>
+</html>

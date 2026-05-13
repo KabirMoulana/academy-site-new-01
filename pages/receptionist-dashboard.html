@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Receptionist Dashboard — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-icon">👨‍🎓</span><div class="stat-value" id="statStudents">…</div><div class="stat-label">Total Students</div></div>
+        <div class="stat-card"><span class="stat-icon">💳</span><div class="stat-value" id="statPending">…</div><div class="stat-label">Pending Payments</div></div>
+        <div class="stat-card"><span class="stat-icon">🧾</span><div class="stat-value" id="statReceipts">…</div><div class="stat-label">Receipts Issued</div></div>
+        <div class="stat-card"><span class="stat-icon">📢</span><div class="stat-value" id="statAnn">…</div><div class="stat-label">Announcements</div></div>
+      </div>
+
+      <div class="tab-section">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="rec-students">Students</button>
+          <button class="tab-btn" data-tab="rec-payments">Payments</button>
+          <button class="tab-btn" data-tab="rec-receipts">Receipts</button>
+          <button class="tab-btn" data-tab="rec-ann">Announcements</button>
+        </div>
+
+        <!-- STUDENTS -->
+        <div class="tab-content active" id="rec-students">
+          <div class="section-header">
+            <div class="section-title">Students</div>
+            <div style="display:flex;gap:10px;">
+              <div class="search-bar"><span>🔍</span><input id="studSearch" type="text" placeholder="Search…" oninput="filterTable('studSearch','studTable')"/></div>
+              <button class="btn btn-primary" onclick="openModal('addStudModal')">+ Register Student</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table id="studTable"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Type</th><th>Grade</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="studTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- PAYMENTS -->
+        <div class="tab-content" id="rec-payments">
+          <div class="section-header">
+            <div class="section-title">Payments</div>
+            <button class="btn btn-primary" onclick="openModal('payModal')">+ Record Payment</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Student</th><th>Amount</th><th>Month</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="payTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- RECEIPTS -->
+        <div class="tab-content" id="rec-receipts">
+          <div class="section-header">
+            <div class="section-title">Receipts</div>
+            <button class="btn btn-primary" onclick="openModal('recModal')">+ Generate Receipt</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Student</th><th>Amount</th><th>Issue Date</th><th>Note</th><th>Actions</th></tr></thead>
+            <tbody id="recTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- ANNOUNCEMENTS -->
+        <div class="tab-content" id="rec-ann">
+          <div class="section-header"><div class="section-title">Announcements</div></div>
+          <div id="annList"><div style="color:var(--grey);padding:20px;">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER STUDENT MODAL -->
+<div class="modal-overlay" id="addStudModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Register Student</h2><button class="modal-close" onclick="closeModal('addStudModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Full Name</label><input class="form-control" id="stName" placeholder="Full name"/></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="stEmail" type="email" placeholder="email@…"/></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-control" id="stPass" type="password" value="password"/></div>
+      <div class="form-group"><label class="form-label">Type</label><select class="form-control" id="stType"><option value="online">Online</option><option value="physical">Physical</option></select></div>
+      <div class="form-group"><label class="form-label">Grade</label><input class="form-control" id="stGrade" placeholder="A/L"/></div>
+      <div class="form-group"><label class="form-label">Date of Birth</label><input class="form-control" id="stDOB" type="date"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="registerStudent()">Register</button>
+      <button class="btn btn-outline" onclick="closeModal('addStudModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="payModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Record Payment</h2><button class="modal-close" onclick="closeModal('payModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Student ID</label><input class="form-control" id="pStudID" type="number" placeholder="1"/></div>
+      <div class="form-group"><label class="form-label">Amount (Rs)</label><input class="form-control" id="pAmount" type="number" placeholder="8500"/></div>
+      <div class="form-group"><label class="form-label">Month</label><input class="form-control" id="pMonth" type="month"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="recordPayment()">Record</button>
+      <button class="btn btn-outline" onclick="closeModal('payModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="modal-overlay" id="recModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Generate Receipt</h2><button class="modal-close" onclick="closeModal('recModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Payment ID</label><input class="form-control" id="rPayID" type="number" placeholder="1"/></div>
+      <div class="form-group"><label class="form-label">Amount (Rs)</label><input class="form-control" id="rAmount" type="number" placeholder="8500"/></div>
+      <div class="form-group"><label class="form-label">Note</label><input class="form-control" id="rNote" placeholder="June payment…"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="genReceipt()">Generate</button>
+      <button class="btn btn-outline" onclick="closeModal('recModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+async function loadAll() {
+  const [studResp, payments, receipts, announcements] = await Promise.all([
+    fetch('../api/students.php?action=list',{credentials:'include'}).then(r=>r.json()),
+    API.listPayments(), API.listReceipts(), API.listAnnouncements({status:'Published'})
+  ]);
+  const students = studResp.data || [];
+
+  document.getElementById('statStudents').textContent = students.length;
+  document.getElementById('statPending').textContent  = payments.filter(p=>p.status==='pending').length;
+  document.getElementById('statReceipts').textContent = receipts.length;
+  document.getElementById('statAnn').textContent      = announcements.length;
+
+  renderTable('studTbody', students, [
+    r=>`#${r.studentID}`, r=>r.name||'—', r=>r.email||'—',
+    r=>badge(r.type||'online'), r=>r.grade||'—', r=>badge(r.isActive?'Active':'Inactive'),
+    r=>`<button class="btn btn-danger btn-sm" onclick="delStudent(${r.studentID},'${r.name}')">Delete</button>`
+  ]);
+
+  renderTable('payTbody', payments, [
+    r=>`#${r.paymentID}`, r=>r.studentName||`#${r.studentID}`,
+    r=>`Rs ${parseFloat(r.amount).toLocaleString()}`, r=>r.month?.slice(0,7)||'—',
+    r=>badge(r.status),
+    r=>`${r.status==='pending'?`<button class="btn btn-success btn-sm" onclick="approvePay(${r.paymentID})">Approve</button> `:''}
+        <button class="btn btn-danger btn-sm" onclick="delPay(${r.paymentID})">Delete</button>`
+  ]);
+
+  renderTable('recTbody', receipts, [
+    r=>`#${r.receiptID}`, r=>r.studentName||'—',
+    r=>`Rs ${parseFloat(r.receiptAmount).toLocaleString()}`,
+    r=>r.issueDate||'—', r=>r.receiptNote||'—',
+    r=>`<button class="btn btn-success btn-sm" onclick="showToast('Printing…','gold')">Print</button>
+        <button class="btn btn-danger btn-sm" onclick="delRec(${r.receiptID})">Delete</button>`
+  ]);
+
+  const annEl = document.getElementById('annList');
+  annEl.innerHTML = announcements.length
+    ? announcements.map(a=>`<div class="announcement-card"><div class="ann-title">${a.title}</div><p class="ann-content">${a.content||''}</p><div class="ann-meta"><span>📅 ${(a.postedAt||'').split('T')[0]}</span></div></div>`).join('')
+    : '<p style="color:var(--grey);">No announcements.</p>';
+}
+
+async function registerStudent(){
+  const d={name:document.getElementById('stName').value,email:document.getElementById('stEmail').value,password:document.getElementById('stPass').value,type:document.getElementById('stType').value,grade:document.getElementById('stGrade').value,dateOfBirth:document.getElementById('stDOB').value};
+  if(!d.name||!d.email){showToast('Name and email required','error');return;}
+  const r=await fetch('../api/students.php?action=add',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+  const j=await r.json();
+  if(!j.success){showToast(j.message,'error');return;}
+  showToast('Student registered!'); closeModal('addStudModal'); loadAll();
+}
+async function delStudent(id,name){confirmDelete(name,async()=>{const r=await fetch(`../api/students.php?action=delete&id=${id}`,{method:'DELETE',credentials:'include'});const j=await r.json();if(j.success){showToast('Deleted');loadAll();}else showToast(j.message,'error');});}
+async function recordPayment(){
+  const d={studentID:parseInt(document.getElementById('pStudID').value),amount:parseFloat(document.getElementById('pAmount').value),month:document.getElementById('pMonth').value+'-01',status:'pending'};
+  if(!d.studentID||!d.amount){showToast('Required fields missing','error');return;}
+  await API.recordPayment(d); showToast('Recorded!'); closeModal('payModal'); loadAll();
+}
+async function approvePay(id){await API.approvePayment(id);showToast('Approved!');loadAll();}
+async function delPay(id){confirmDelete('this payment',async()=>{await API.deletePayment(id);showToast('Deleted');loadAll();});}
+async function genReceipt(){
+  const d={paymentID:parseInt(document.getElementById('rPayID').value),receiptAmount:parseFloat(document.getElementById('rAmount').value),receiptNote:document.getElementById('rNote').value};
+  if(!d.paymentID||!d.receiptAmount){showToast('Payment ID and amount required','error');return;}
+  await API.genReceipt(d); showToast('Receipt generated!'); closeModal('recModal'); loadAll();
+}
+async function delRec(id){confirmDelete('this receipt',async()=>{await API.deleteReceipt(id);showToast('Deleted');loadAll();});}
+
+buildLayout([
+  { label:'Overview', items:[{icon:'📊',name:'Dashboard',active:true}]},
+  { label:'Front Desk', items:[
+    {icon:'👨‍🎓',name:'Students',href:'#'},
+    {icon:'💳',name:'Payments',href:'#'},
+    {icon:'🧾',name:'Receipts',href:'#'},
+  ]},
+  { label:'Profile', items:[{icon:'👤',name:'My Profile',href:'profile.html'}]},
+], 'Receptionist Dashboard');
+
+authGuard().then(loadAll);
+</script>
+</body>
+</html>

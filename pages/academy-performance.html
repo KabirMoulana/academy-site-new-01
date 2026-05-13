@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Academy Performance — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <!-- LIVE STATS -->
+      <div class="stats-grid" id="summaryStats">
+        <div class="stat-card"><span class="stat-icon">👨‍🎓</span><div class="stat-value" id="sStudents">…</div><div class="stat-label">Students</div></div>
+        <div class="stat-card"><span class="stat-icon">🎓</span><div class="stat-value" id="sLecturers">…</div><div class="stat-label">Lecturers</div></div>
+        <div class="stat-card"><span class="stat-icon">📋</span><div class="stat-value" id="sEnroll">…</div><div class="stat-label">Active Enrollments</div></div>
+        <div class="stat-card"><span class="stat-icon">✅</span><div class="stat-value" id="sAtt">…</div><div class="stat-label">Attendance Rate</div></div>
+        <div class="stat-card"><span class="stat-icon">📝</span><div class="stat-value" id="sMarks">…</div><div class="stat-label">Avg. Marks</div></div>
+        <div class="stat-card"><span class="stat-icon">⭐</span><div class="stat-value" id="sFb">…</div><div class="stat-label">Avg. Feedback</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+        <!-- PERFORMANCE BARS -->
+        <div class="card">
+          <div class="section-title" style="margin-bottom:20px;">Live Metrics</div>
+          <div id="perfBars"><div style="color:var(--grey);">Loading…</div></div>
+        </div>
+
+        <!-- RECORD FORM -->
+        <div class="card">
+          <div class="section-title" style="margin-bottom:20px;">Record Performance</div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">Overall Rating (1–5)</label>
+            <input class="form-control" id="perfRating" type="number" min="1" max="5" step="0.1" placeholder="e.g. 4.5"/>
+          </div>
+          <div class="form-group" style="margin-bottom:20px;">
+            <label class="form-label">Review Period</label>
+            <input class="form-control" id="perfPeriod" type="month"/>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="addRecord()">+ Add Record</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORY TABLE -->
+      <div class="section-header">
+        <div class="section-title">Performance History</div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>ID</th><th>Rating</th><th>Period</th><th>Reviewed At</th><th>Actions</th></tr></thead>
+          <tbody id="perfTbody"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--grey);">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editPerfModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Edit Performance Record</h2>
+      <button class="modal-close" onclick="closeModal('editPerfModal')">✕</button>
+    </div>
+    <input type="hidden" id="editPerfID"/>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Rating</label><input class="form-control" id="editRating" type="number" min="1" max="5" step="0.1"/></div>
+      <div class="form-group"><label class="form-label">Period</label><input class="form-control" id="editPeriod" type="month"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('editPerfModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+async function loadSummary() {
+  const r   = await fetch('../api/academy_performance.php?action=summary', { credentials:'include' });
+  const d   = await r.json();
+  const s   = d.data || {};
+
+  document.getElementById('sStudents').textContent  = s.students  || 0;
+  document.getElementById('sLecturers').textContent = s.lecturers || 0;
+  document.getElementById('sEnroll').textContent    = s.activeEnrollments || 0;
+  document.getElementById('sAtt').textContent       = s.attendanceRate ? s.attendanceRate+'%' : '—';
+  document.getElementById('sMarks').textContent     = s.averageMarks || '—';
+  document.getElementById('sFb').textContent        = s.averageFeedback || '—';
+
+  const bars = [
+    { label: 'Attendance Rate',     val: s.attendanceRate || 0,    max: 100 },
+    { label: 'Sessions Completed',  val: s.completedSessions || 0, max: Math.max(s.totalSessions||1,1)*100/100 },
+    { label: 'Payments Approved',   val: Math.round((s.approvedPayments||0)/(s.totalPayments||1)*100), max: 100 },
+    { label: 'Average Marks',       val: s.averageMarks || 0,      max: 100 },
+    { label: 'Avg. Feedback (×20)', val: (s.averageFeedback||0)*20, max: 100 },
+  ];
+
+  document.getElementById('perfBars').innerHTML = bars.map(b => `
+    <div class="progress-bar-wrap">
+      <div class="progress-label">
+        <span>${b.label}</span>
+        <span>${typeof b.val==='number'&&b.val<=100?b.val+'%':b.val}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${Math.min(100,b.val)}%"></div>
+      </div>
+    </div>`).join('');
+}
+
+async function loadHistory() {
+  const r    = await fetch('../api/academy_performance.php?action=list', { credentials:'include' });
+  const d    = await r.json();
+  const rows = d.data || [];
+
+  const stars = n => {
+    const full  = Math.floor(n);
+    const half  = n % 1 >= 0.5 ? 1 : 0;
+    return '⭐'.repeat(full) + (half ? '✨' : '');
+  };
+
+  renderTable('perfTbody', rows, [
+    r => `#${r.performanceID}`,
+    r => `<span style="font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);">${r.overallRating}</span> ${stars(r.overallRating)}`,
+    r => r.reviewedPeriod || '—',
+    r => r.reviewedAt?.split('T')[0] || '—',
+    r => `<button class="btn btn-outline btn-sm" onclick="openEdit(${r.performanceID},${r.overallRating},'${r.reviewedPeriod||''}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="delRecord(${r.performanceID})">Delete</button>`
+  ]);
+}
+
+async function addRecord() {
+  const rating = parseFloat(document.getElementById('perfRating').value);
+  const period = document.getElementById('perfPeriod').value;
+  if (isNaN(rating) || rating < 1 || rating > 5) { showToast('Enter a rating between 1 and 5', 'error'); return; }
+  if (!period) { showToast('Select a review period', 'error'); return; }
+  const r = await fetch('../api/academy_performance.php?action=monitor', {
+    method:'POST', credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ overallRating: rating, reviewedPeriod: period })
+  });
+  const d = await r.json();
+  if (!d.success) { showToast(d.message, 'error'); return; }
+  showToast('Record added!');
+  document.getElementById('perfRating').value = '';
+  document.getElementById('perfPeriod').value = '';
+  loadHistory();
+}
+
+function openEdit(id, rating, period) {
+  document.getElementById('editPerfID').value  = id;
+  document.getElementById('editRating').value  = rating;
+  document.getElementById('editPeriod').value  = period;
+  openModal('editPerfModal');
+}
+
+async function saveEdit() {
+  const id     = document.getElementById('editPerfID').value;
+  const rating = parseFloat(document.getElementById('editRating').value);
+  const period = document.getElementById('editPeriod').value;
+  const r = await fetch(`../api/academy_performance.php?action=edit&id=${id}`, {
+    method:'PUT', credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ overallRating: rating, reviewedPeriod: period })
+  });
+  const d = await r.json();
+  if (!d.success) { showToast(d.message, 'error'); return; }
+  showToast('Updated!');
+  closeModal('editPerfModal');
+  loadHistory();
+}
+
+async function delRecord(id) {
+  confirmDelete('this record', async () => {
+    const r = await fetch(`../api/academy_performance.php?action=delete&id=${id}`, { method:'DELETE', credentials:'include' });
+    const d = await r.json();
+    if (!d.success) { showToast(d.message, 'error'); return; }
+    showToast('Deleted');
+    loadHistory();
+  });
+}
+
+buildLayout([
+  { label:'Reports', items:[
+    { icon:'📈', name:'Performance', active:true },
+    { icon:'🏆', name:'Leaderboard', href:'leaderboard.html' },
+  ]},
+  { label:'Back', items:[
+    { icon:'📊', name:'Dashboard', href:'admin-dashboard.html' },
+  ]},
+], 'Academy Performance');
+
+authGuard().then(() => { loadSummary(); loadHistory(); });
+</script>
+</body>
+</html>

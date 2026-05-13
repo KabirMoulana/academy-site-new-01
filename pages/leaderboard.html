@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><title>Leaderboard — EduCore</title><link rel="stylesheet" href="../css/style.css"/></head>
+<body>
+<div class="app-shell" id="appShell"><div class="main-content"><div id="topbarMount"></div><div class="page-body">
+  <div class="section-header">
+    <div class="section-title">Leaderboard <span>Top Performers</span></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline" onclick="rebuild()">↻ Rebuild</button>
+      <button class="btn btn-danger" onclick="resetBoard()">Reset</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;" id="lbContainer">
+    <div style="text-align:center;padding:40px;color:var(--grey);">Loading…</div>
+  </div>
+</div></div></div>
+
+<script src="../js/app.js"></script><script src="../js/layout.js"></script><script src="../js/api.js"></script>
+<script>
+const rankCls = ['gold','silver','bronze'];
+async function loadLeaderboard(){
+  const rows = await API.leaderboard();
+  const el = document.getElementById('lbContainer');
+  if(!rows.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--grey);">No entries yet. Add performance points first.</div>';return;}
+  el.innerHTML = rows.map((r,i)=>`
+    <div class="lb-item">
+      <div class="lb-rank ${rankCls[i]||''}">${i+1}</div>
+      <div class="lb-avatar">${r.studentName?.split(' ').map(w=>w[0]).join('').slice(0,2)||'??'}</div>
+      <div class="lb-name">${r.studentName||'Student #'+r.studentID}</div>
+      <div class="lb-points">${r.totalPoints} pts</div>
+    </div>`).join('');
+}
+async function rebuild(){await API.rebuildLeaderboard();showToast('Leaderboard rebuilt!');loadLeaderboard();}
+async function resetBoard(){confirmDelete('the leaderboard',async()=>{await api('performance','reset_leaderboard','DELETE');showToast('Leaderboard reset');loadLeaderboard();});}
+buildLayout([{label:'Academic',items:[{icon:'🏆',name:'Leaderboard',active:true}]},{label:'Back',items:[{icon:'📊',name:'Dashboard',href:'admin-dashboard.html'}]}],'Leaderboard');
+authGuard().then(loadLeaderboard);
+</script>
+</body></html>

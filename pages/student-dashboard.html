@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Student Dashboard — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-icon">✅</span><div class="stat-value" id="statAtt">…</div><div class="stat-label">Attendance Rate</div></div>
+        <div class="stat-card"><span class="stat-icon">🏆</span><div class="stat-value" id="statPts">…</div><div class="stat-label">Performance Points</div></div>
+        <div class="stat-card"><span class="stat-icon">📝</span><div class="stat-value" id="statGrade">…</div><div class="stat-label">Latest Grade</div></div>
+        <div class="stat-card"><span class="stat-icon">💳</span><div class="stat-value" id="statPay">…</div><div class="stat-label">Payment Status</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+        <!-- ATTENDANCE BARS -->
+        <div class="card">
+          <div class="section-title" style="margin-bottom:20px;">Attendance by Subject</div>
+          <div id="attBars"><div style="color:var(--grey);">Loading…</div></div>
+        </div>
+        <!-- LEADERBOARD PREVIEW -->
+        <div class="card">
+          <div class="section-header">
+            <div class="section-title">Leaderboard</div>
+            <button class="btn btn-outline btn-sm" onclick="openModal('lbModal')">Full Board</button>
+          </div>
+          <div id="lbPreview"><div style="color:var(--grey);">Loading…</div></div>
+        </div>
+      </div>
+
+      <div class="tab-section">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="st-sessions">Sessions</button>
+          <button class="tab-btn" data-tab="st-materials">Materials</button>
+          <button class="tab-btn" data-tab="st-results">Results</button>
+          <button class="tab-btn" data-tab="st-payments">Payments</button>
+          <button class="tab-btn" data-tab="st-feedback">Feedback</button>
+          <button class="tab-btn" data-tab="st-points">Performance</button>
+        </div>
+
+        <!-- SESSIONS -->
+        <div class="tab-content active" id="st-sessions">
+          <div class="section-header"><div class="section-title">Class Sessions</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Date</th><th>Subject</th><th>Mode</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="sessTbody"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--grey);">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- MATERIALS -->
+        <div class="tab-content" id="st-materials">
+          <div class="section-header"><div class="section-title">Study Materials</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Title</th><th>Subject</th><th>Type</th><th>Uploaded</th><th>Action</th></tr></thead>
+            <tbody id="matTbody"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--grey);">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="tab-content" id="st-results">
+          <div class="section-header"><div class="section-title">Exam Results</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Subject</th><th>Exam Date</th><th>Marks</th><th>Grade</th></tr></thead>
+            <tbody id="resultsTbody"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--grey);">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- PAYMENTS -->
+        <div class="tab-content" id="st-payments">
+          <div class="section-header"><div class="section-title">Payment History</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Month</th><th>Amount</th><th>Paid At</th><th>Status</th></tr></thead>
+            <tbody id="payTbody"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--grey);">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- FEEDBACK -->
+        <div class="tab-content" id="st-feedback">
+          <div class="section-header">
+            <div class="section-title">My Feedback</div>
+            <button class="btn btn-primary" onclick="openModal('feedbackModal')">+ Give Feedback</button>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Subject</th><th>Rating</th><th>Comment</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody id="feedTbody"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--grey);">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- PERFORMANCE POINTS -->
+        <div class="tab-content" id="st-points">
+          <div class="section-header"><div class="section-title">Performance Points</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Points</th><th>Reason</th><th>Awarded At</th></tr></thead>
+            <tbody id="pointsTbody"><tr><td colspan="3" style="text-align:center;padding:24px;color:var(--grey);">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-overlay" id="feedbackModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Give Feedback</h2><button class="modal-close" onclick="closeModal('feedbackModal')">✕</button></div>
+    <div class="form-grid" style="grid-template-columns:1fr;">
+      <div class="form-group"><label class="form-label">Subject</label>
+        <select class="form-control" id="fbSubject"></select>
+      </div>
+      <div class="form-group"><label class="form-label">Rating</label>
+        <select class="form-control" id="fbRating">
+          <option value="5">⭐⭐⭐⭐⭐ Excellent</option><option value="4">⭐⭐⭐⭐ Good</option>
+          <option value="3">⭐⭐⭐ Average</option><option value="2">⭐⭐ Poor</option><option value="1">⭐ Very Poor</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Comment</label>
+        <textarea class="form-control" id="fbComment" rows="4" style="resize:vertical;" placeholder="Your thoughts…"></textarea>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="submitFeedback()">Submit</button>
+      <button class="btn btn-outline" onclick="closeModal('feedbackModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD MODAL -->
+<div class="modal-overlay" id="lbModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">Full Leaderboard</h2><button class="modal-close" onclick="closeModal('lbModal')">✕</button></div>
+    <div class="table-wrapper" style="border-radius:12px;" id="lbFull">Loading…</div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+let currentUser = null;
+let studentID   = null;  // students.studentID (not userID)
+
+const starStr = n => '⭐'.repeat(Math.min(5,Math.max(1,parseInt(n)||1)));
+
+async function getStudentID(userID) {
+  // Fetch student record linked to this user
+  const users = await API.listUsers('student');
+  // We need the studentID from the students table. Use the userID match.
+  // Since listUsers returns userID, we need a joined query – use a small workaround:
+  // We'll look up via enrollments or results; simplest: store studentID from session
+  // For demo we return userID as a proxy (seeded student has userID=5, studentID=1)
+  // In production, add GET /api/students.php?action=getByUser&userID=X
+  return userID; // placeholder — see students.php endpoint below
+}
+
+async function loadDashboard() {
+  currentUser = await API.me();
+
+  // Try to get real studentID via the students API
+  try {
+    const sResp = await fetch(`../api/students.php?action=getByUser&userID=${currentUser.userID}`, { credentials:'include' });
+    const sData = await sResp.json();
+    if (sData.success && sData.data) studentID = sData.data.studentID;
+    else studentID = currentUser.userID; // fallback
+  } catch { studentID = currentUser.userID; }
+
+  // Load all data in parallel
+  const [sessions, materials, results, payments, feedback, points, lb, subjects] = await Promise.all([
+    API.listSessions(),
+    API.listMaterials(),
+    API.listResults({studentID}),
+    API.listPayments({studentID}),
+    API.listFeedback({studentID}),
+    API.listPoints({studentID}),
+    API.leaderboard(),
+    API.listSubjects()
+  ]);
+
+  // Stats
+  const totalPts = points.reduce((s,p)=>s+parseInt(p.points||0),0);
+  document.getElementById('statPts').textContent = totalPts;
+  const latestResult = results[0];
+  document.getElementById('statGrade').textContent = latestResult?.resultGrade || '—';
+  const latestPay = payments[0];
+  document.getElementById('statPay').textContent = latestPay?.status === 'approved' ? 'Paid' : (latestPay ? 'Pending' : '—');
+
+  // Attendance bars
+  const attBySubject = {};
+  const attData = await API.listAttendance({studentID});
+  attData.forEach(a => {
+    const sub = a.subjectName || 'Unknown';
+    if (!attBySubject[sub]) attBySubject[sub] = {total:0,present:0};
+    attBySubject[sub].total++;
+    if (a.status==='present') attBySubject[sub].present++;
+  });
+  const subjects2 = Object.keys(attBySubject);
+  const totalAtt = subjects2.length ? Math.round(subjects2.reduce((s,k)=>s+(attBySubject[k].present/attBySubject[k].total*100),0)/subjects2.length) : 0;
+  document.getElementById('statAtt').textContent = totalAtt ? totalAtt+'%' : '—';
+  const barsEl = document.getElementById('attBars');
+  if (subjects2.length) {
+    barsEl.innerHTML = subjects2.map(sub => {
+      const pct = Math.round(attBySubject[sub].present/attBySubject[sub].total*100);
+      return `<div class="progress-bar-wrap"><div class="progress-label"><span>${sub}</span><span>${pct}%</span></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div></div>`;
+    }).join('');
+  } else {
+    barsEl.innerHTML = '<div style="color:var(--grey);">No attendance records yet.</div>';
+  }
+
+  // Leaderboard preview
+  const rankCls = ['gold','silver','bronze'];
+  const myEntry = lb.find(e=>e.studentID==studentID);
+  document.getElementById('lbPreview').innerHTML = lb.slice(0,5).map((r,i)=>`
+    <div class="lb-item" style="${r.studentID==studentID?'background:rgba(201,168,76,0.08);':''}">
+      <div class="lb-rank ${rankCls[i]||''}">${i+1}</div>
+      <div class="lb-avatar">${(r.studentName||'??').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+      <div class="lb-name">${r.studentName||'Student'}</div>
+      <div class="lb-points">${r.totalPoints} pts</div>
+    </div>`).join('') || '<div style="color:var(--grey);padding:16px;">No entries yet.</div>';
+
+  // Full leaderboard modal
+  document.getElementById('lbFull').innerHTML = lb.map((r,i)=>`
+    <div class="lb-item">
+      <div class="lb-rank ${rankCls[i]||''}">${i+1}</div>
+      <div class="lb-avatar">${(r.studentName||'??').split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+      <div class="lb-name">${r.studentName||'Student'}</div>
+      <div class="lb-points">${r.totalPoints} pts</div>
+    </div>`).join('') || '<div style="padding:20px;color:var(--grey);">No entries.</div>';
+
+  // Sessions table
+  renderTable('sessTbody', sessions, [
+    r=>r.date||'—', r=>r.subjectName||'—', r=>badge(r.mode||'online'),
+    r=>badge(r.sessionStatus||'Upcoming'),
+    r=>r.sessionStatus==='Upcoming' && r.classLink
+      ? `<button class="btn btn-primary btn-sm" onclick="window.open('${r.classLink}','_blank')">Join</button>`
+      : r.recording
+        ? `<button class="btn btn-outline btn-sm" onclick="window.open('${r.recording}','_blank')">Recording</button>`
+        : '—'
+  ]);
+
+  // Materials table
+  renderTable('matTbody', materials, [
+    r=>r.title, r=>r.subjectName||'—', r=>r.fileType||'—',
+    r=>r.uploadedAt?.split('T')[0]||'—',
+    r=>r.fileURL ? `<button class="btn btn-success btn-sm" onclick="window.open('${r.fileURL}','_blank')">Download</button>` : '—'
+  ]);
+
+  // Results table
+  renderTable('resultsTbody', results, [
+    r=>r.subjectName||'—', r=>r.examDate||'—',
+    r=>`${r.marks} / 100`, r=>badge(r.resultGrade||'—')
+  ]);
+
+  // Payments table
+  renderTable('payTbody', payments, [
+    r=>r.month?.slice(0,7)||'—',
+    r=>`Rs ${parseFloat(r.amount).toLocaleString()}`,
+    r=>r.paidAt?.split('T')[0]||'—',
+    r=>badge(r.status)
+  ]);
+
+  // Feedback table
+  renderTable('feedTbody', feedback, [
+    r=>r.subjectName||'—', r=>starStr(r.feedbackRating),
+    r=>r.comment||'—', r=>r.givenAt?.split('T')[0]||'—',
+    r=>badge(r.feedbackStatus||'Pending')
+  ]);
+
+  // Performance points table
+  renderTable('pointsTbody', points, [
+    r=>`<span style="color:${parseInt(r.points)>=0?'var(--success)':'var(--danger)'};">${parseInt(r.points)>=0?'+':''}${r.points}</span>`,
+    r=>r.pointReason||'—', r=>r.awardedAt?.split('T')[0]||'—'
+  ]);
+
+  // Populate feedback subject dropdown
+  const fbSel = document.getElementById('fbSubject');
+  fbSel.innerHTML = subjects.map(s=>`<option value="${s.subjectID}">${s.name}</option>`).join('');
+
+  buildLayout([
+    { label:'Overview', items:[
+      {icon:'📊',name:'Dashboard',active:true},
+      {icon:'📢',name:'Announcements',href:'#'},
+    ]},
+    { label:'Learning', items:[
+      {icon:'🎥',name:'Sessions',href:'#'},
+      {icon:'📚',name:'Materials',href:'#'},
+      {icon:'📋',name:'Attendance',href:'#'},
+      {icon:'📝',name:'Results',href:'#'},
+      {icon:'🏆',name:'Leaderboard',href:'leaderboard.html'},
+    ]},
+    { label:'Account', items:[
+      {icon:'💳',name:'Payments',href:'#'},
+      {icon:'💬',name:'Feedback',href:'#'},
+      {icon:'👤',name:'My Profile',href:'profile.html'},
+    ]},
+  ], 'Student Dashboard');
+}
+
+async function submitFeedback() {
+  const subjectID  = parseInt(document.getElementById('fbSubject').value);
+  const rating     = parseInt(document.getElementById('fbRating').value);
+  const comment    = document.getElementById('fbComment').value.trim();
+  if (!subjectID) { showToast('Select a subject', 'error'); return; }
+  await API.provideFeedback({ studentID, subjectID, feedbackRating: rating, comment });
+  showToast('Feedback submitted!');
+  closeModal('feedbackModal');
+  loadDashboard();
+}
+
+authGuard().then(loadDashboard);
+</script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Class Sessions — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-icon">📅</span><div class="stat-value" id="statUpcoming">…</div><div class="stat-label">Upcoming</div></div>
+        <div class="stat-card"><span class="stat-icon">✅</span><div class="stat-value" id="statCompleted">…</div><div class="stat-label">Completed</div></div>
+        <div class="stat-card"><span class="stat-icon">🌐</span><div class="stat-value" id="statOnline">…</div><div class="stat-label">Online</div></div>
+        <div class="stat-card"><span class="stat-icon">🏫</span><div class="stat-value" id="statPhysical">…</div><div class="stat-label">Physical</div></div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Class Sessions</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select class="form-control" id="statusFilter" style="width:160px;" onchange="loadSessions()">
+            <option value="">All Sessions</option>
+            <option value="Upcoming">Upcoming</option>
+            <option value="Completed">Completed</option>
+          </select>
+          <div class="search-bar">
+            <span>🔍</span>
+            <input type="text" id="sessSearch" placeholder="Search…" oninput="filterTable('sessSearch','sessTable')"/>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('sessModal')">+ Add Session</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="sessTable">
+          <thead>
+            <tr><th>ID</th><th>Date</th><th>Subject</th><th>Batch</th><th>Lecturer</th><th>Mode</th><th>Status</th><th>Link</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="sessTbody">
+            <tr><td colspan="9" style="text-align:center;padding:32px;color:var(--grey);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT SESSION MODAL -->
+<div class="modal-overlay" id="sessModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="sessModalTitle">Add Session</h2>
+      <button class="modal-close" onclick="closeModal('sessModal')">✕</button>
+    </div>
+    <input type="hidden" id="editSessID"/>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Subject</label><select class="form-control" id="sessSubject"></select></div>
+      <div class="form-group"><label class="form-label">Batch</label><select class="form-control" id="sessBatch"></select></div>
+      <div class="form-group"><label class="form-label">Lecturer ID</label><input class="form-control" id="sessLecID" type="number" placeholder="1"/></div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-control" id="sessDate" type="date"/></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-control" id="sessStatus">
+          <option value="Upcoming">Upcoming</option>
+          <option value="Completed">Completed</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Class Link (optional)</label><input class="form-control" id="sessLink" placeholder="https://meet.google.com/…"/></div>
+      <div class="form-group"><label class="form-label">Recording URL (optional)</label><input class="form-control" id="sessRec" placeholder="https://…"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveSession()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('sessModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD LINK MODAL -->
+<div class="modal-overlay" id="linkModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Upload Class Link</h2>
+      <button class="modal-close" onclick="closeModal('linkModal')">✕</button>
+    </div>
+    <input type="hidden" id="linkSessID"/>
+    <div class="form-grid" style="grid-template-columns:1fr;">
+      <div class="form-group"><label class="form-label">Class Link URL</label><input class="form-control" id="linkURL" placeholder="https://meet.google.com/…"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="uploadLink()">Upload</button>
+      <button class="btn btn-outline" onclick="closeModal('linkModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD RECORDING MODAL -->
+<div class="modal-overlay" id="recModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Upload Recording</h2>
+      <button class="modal-close" onclick="closeModal('recModal')">✕</button>
+    </div>
+    <input type="hidden" id="recSessID"/>
+    <div class="form-grid" style="grid-template-columns:1fr;">
+      <div class="form-group"><label class="form-label">Recording URL</label><input class="form-control" id="recURL" placeholder="https://drive.google.com/…"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="uploadRecording()">Upload</button>
+      <button class="btn btn-outline" onclick="closeModal('recModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+async function loadDropdowns() {
+  const [subjects, batches] = await Promise.all([API.listSubjects(), API.listBatches()]);
+  document.getElementById('sessSubject').innerHTML = subjects.map(s=>`<option value="${s.subjectID}">${s.name}</option>`).join('');
+  document.getElementById('sessBatch').innerHTML   = batches.map(b=>`<option value="${b.batchID}">${b.batchName}</option>`).join('');
+}
+
+async function loadSessions() {
+  const sessions = await API.listSessions();
+  const filter   = document.getElementById('statusFilter').value;
+  const rows     = filter ? sessions.filter(s => s.sessionStatus === filter) : sessions;
+
+  document.getElementById('statUpcoming').textContent  = sessions.filter(s=>s.sessionStatus==='Upcoming').length;
+  document.getElementById('statCompleted').textContent = sessions.filter(s=>s.sessionStatus==='Completed').length;
+  document.getElementById('statOnline').textContent    = sessions.filter(s=>(s.mode||'').toLowerCase()==='online').length;
+  document.getElementById('statPhysical').textContent  = sessions.filter(s=>(s.mode||'').toLowerCase()==='physical').length;
+
+  renderTable('sessTbody', rows, [
+    r => `#${r.sessionID}`,
+    r => r.date || '—',
+    r => r.subjectName  || `#${r.subjectID}`,
+    r => r.batchName    || `#${r.batchID}`,
+    r => r.lecturerName || `#${r.lecturerID}`,
+    r => badge(r.mode   || 'online'),
+    r => badge(r.sessionStatus || 'Upcoming'),
+    r => r.classLink
+      ? `<a href="${r.classLink}" target="_blank" class="btn btn-success btn-sm">Open</a>`
+      : `<button class="btn btn-outline btn-sm" onclick="openLinkModal(${r.sessionID})">Add Link</button>`,
+    r => `<button class="btn btn-outline btn-sm" onclick="openRecModal(${r.sessionID})">Rec.</button>
+          <button class="btn btn-danger btn-sm" onclick="delSession(${r.sessionID})">Delete</button>`
+  ]);
+}
+
+function openLinkModal(id) {
+  document.getElementById('linkSessID').value = id;
+  document.getElementById('linkURL').value    = '';
+  openModal('linkModal');
+}
+function openRecModal(id) {
+  document.getElementById('recSessID').value = id;
+  document.getElementById('recURL').value    = '';
+  openModal('recModal');
+}
+
+async function uploadLink() {
+  const id   = document.getElementById('linkSessID').value;
+  const link = document.getElementById('linkURL').value.trim();
+  if (!link) { showToast('URL required', 'error'); return; }
+  await API.uploadLink(id, { classLink: link });
+  showToast('Link uploaded!');
+  closeModal('linkModal');
+  loadSessions();
+}
+
+async function uploadRecording() {
+  const id  = document.getElementById('recSessID').value;
+  const rec = document.getElementById('recURL').value.trim();
+  if (!rec) { showToast('URL required', 'error'); return; }
+  await API.uploadRecording(id, { recording: rec });
+  showToast('Recording uploaded!');
+  closeModal('recModal');
+  loadSessions();
+}
+
+function openAddModal() {
+  document.getElementById('editSessID').value   = '';
+  document.getElementById('sessDate').value     = '';
+  document.getElementById('sessLink').value     = '';
+  document.getElementById('sessRec').value      = '';
+  document.getElementById('sessLecID').value    = '';
+  document.getElementById('sessStatus').value   = 'Upcoming';
+  document.getElementById('sessModalTitle').textContent = 'Add Session';
+  openModal('sessModal');
+}
+
+async function saveSession() {
+  const lecturerID = parseInt(document.getElementById('sessLecID').value);
+  const subjectID  = parseInt(document.getElementById('sessSubject').value);
+  const batchID    = parseInt(document.getElementById('sessBatch').value);
+  const date       = document.getElementById('sessDate').value;
+  const classLink  = document.getElementById('sessLink').value.trim();
+  const recording  = document.getElementById('sessRec').value.trim();
+  const sessionStatus = document.getElementById('sessStatus').value;
+
+  if (!date || !lecturerID) { showToast('Date and Lecturer ID required', 'error'); return; }
+
+  const id = document.getElementById('editSessID').value;
+  if (id) await API.deleteSession(id); // replace existing
+
+  await API.createSession({ subjectID, batchID, lecturerID, date, classLink, recording, sessionStatus });
+  showToast('Session saved!');
+  closeModal('sessModal');
+  document.getElementById('editSessID').value = '';
+  loadSessions();
+}
+
+async function delSession(id) {
+  confirmDelete('this session', async () => {
+    await API.deleteSession(id);
+    showToast('Session deleted');
+    loadSessions();
+  });
+}
+
+buildLayout([
+  { label:'Academic', items:[
+    { icon:'🎥', name:'Sessions',    active:true },
+    { icon:'📋', name:'Attendance',  href:'attendance.html' },
+    { icon:'📝', name:'Results',     href:'results.html' },
+  ]},
+  { label:'Back', items:[
+    { icon:'📊', name:'Dashboard',   href:'admin-dashboard.html' },
+  ]},
+], 'Class Sessions');
+
+authGuard().then(() => { loadDropdowns(); loadSessions(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Subjects — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+      <div class="section-header">
+        <div class="section-title">Subjects</div>
+        <button class="btn btn-primary" onclick="openModal('addSubjectModal')">+ Add Subject</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Level</th><th>Syllabus</th><th>Description</th><th>Actions</th></tr></thead>
+          <tbody id="subjectsTbody"><tr><td colspan="6" style="text-align:center;padding:28px;color:var(--grey);">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="addSubjectModal">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title" id="subjectModalTitle">Add Subject</h2><button class="modal-close" onclick="closeModal('addSubjectModal')">✕</button></div>
+    <div class="form-grid">
+      <input type="hidden" id="editSubjectID"/>
+      <div class="form-group"><label class="form-label">Name</label><input class="form-control" id="subName" placeholder="e.g. Biology"/></div>
+      <div class="form-group"><label class="form-label">Level</label><select class="form-control" id="subLevel"><option>Ordinary</option><option>Advanced</option></select></div>
+      <div class="form-group"><label class="form-label">Syllabus</label><input class="form-control" id="subSyllabus" placeholder="e.g. A/L Biology"/></div>
+      <div class="form-group"><label class="form-label">Description</label><input class="form-control" id="subDesc" placeholder="Brief description…"/></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveSubject()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('addSubjectModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script><script src="../js/layout.js"></script><script src="../js/api.js"></script>
+<script>
+async function loadSubjects() {
+  const rows = await API.listSubjects();
+  renderTable('subjectsTbody', rows, [
+    r=>`#${r.subjectID}`, r=>r.name, r=>badge(r.level||'—'),
+    r=>r.syllabus||'—', r=>r.subjectDescription||'—',
+    r=>`<button class="btn btn-outline btn-sm" onclick="editSubject(${r.subjectID},'${r.name}','${r.level}','${r.syllabus}','${(r.subjectDescription||'').replace(/'/g,"\\'")}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="delSubject(${r.subjectID},'${r.name}')">Delete</button>`
+  ]);
+}
+function editSubject(id,name,level,syl,desc){
+  document.getElementById('editSubjectID').value=id;
+  document.getElementById('subName').value=name;
+  document.getElementById('subLevel').value=level;
+  document.getElementById('subSyllabus').value=syl;
+  document.getElementById('subDesc').value=desc;
+  document.getElementById('subjectModalTitle').textContent='Edit Subject';
+  openModal('addSubjectModal');
+}
+async function saveSubject(){
+  const id=document.getElementById('editSubjectID').value;
+  const d={name:document.getElementById('subName').value,level:document.getElementById('subLevel').value,
+    syllabus:document.getElementById('subSyllabus').value,subjectDescription:document.getElementById('subDesc').value};
+  if(!d.name){showToast('Name required','error');return;}
+  if(id) await API.updateSubject(id,d); else await API.createSubject(d);
+  showToast(id?'Subject updated!':'Subject added!');
+  document.getElementById('editSubjectID').value='';
+  document.getElementById('subjectModalTitle').textContent='Add Subject';
+  closeModal('addSubjectModal'); loadSubjects();
+}
+async function delSubject(id,name){confirmDelete(name,async()=>{await API.deleteSubject(id);showToast('Deleted');loadSubjects();});}
+buildLayout([{label:'Academic',items:[{icon:'📚',name:'Subjects',active:true},{icon:'🗓️',name:'Batches',href:'batches.html'}]},{label:'Profile',items:[{icon:'👤',name:'Dashboard',href:'admin-dashboard.html'}]}],'Subjects');
+authGuard().then(loadSubjects);
+</script>
+</body>
+</html>

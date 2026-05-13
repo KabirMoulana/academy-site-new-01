@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Parent Dashboard — EduCore</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+  <div class="main-content">
+    <div id="topbarMount"></div>
+    <div class="page-body">
+
+      <!-- CHILD CARD -->
+      <div class="profile-hero" id="childCard" style="margin-bottom:28px;">
+        <div class="profile-avatar-lg" id="childInitials">…</div>
+        <div class="profile-info">
+          <div class="name" id="childName">Loading…</div>
+          <div class="role-badge">Your Child</div>
+          <div class="email" id="childInfo">—</div>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div style="font-size:12px;color:var(--grey);">Performance Points</div>
+          <div style="font-family:'Playfair Display',serif;font-size:32px;color:var(--gold);" id="childPts">…</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><span class="stat-icon">✅</span><div class="stat-value" id="statAtt">…</div><div class="stat-label">Attendance Rate</div></div>
+        <div class="stat-card"><span class="stat-icon">📝</span><div class="stat-value" id="statGrade">…</div><div class="stat-label">Latest Grade</div></div>
+        <div class="stat-card"><span class="stat-icon">💳</span><div class="stat-value" id="statPay">…</div><div class="stat-label">Payment Status</div></div>
+        <div class="stat-card"><span class="stat-icon">📢</span><div class="stat-value" id="statAnn">…</div><div class="stat-label">Announcements</div></div>
+      </div>
+
+      <div class="tab-section">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="par-attendance">Attendance</button>
+          <button class="tab-btn" data-tab="par-results">Results</button>
+          <button class="tab-btn" data-tab="par-payments">Payments</button>
+          <button class="tab-btn" data-tab="par-points">Performance</button>
+          <button class="tab-btn" data-tab="par-announcements">Announcements</button>
+        </div>
+
+        <!-- ATTENDANCE -->
+        <div class="tab-content active" id="par-attendance">
+          <div class="section-header"><div class="section-title">Attendance History</div></div>
+          <div id="attBars" class="card" style="margin-bottom:20px;"></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Date</th><th>Subject</th><th>Status</th><th>Note</th></tr></thead>
+            <tbody id="attTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="tab-content" id="par-results">
+          <div class="section-header"><div class="section-title">Exam Results</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Subject</th><th>Exam Date</th><th>Marks</th><th>Grade</th></tr></thead>
+            <tbody id="resultsTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- PAYMENTS -->
+        <div class="tab-content" id="par-payments">
+          <div class="section-header"><div class="section-title">Payment History</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Month</th><th>Amount</th><th>Paid At</th><th>Status</th></tr></thead>
+            <tbody id="payTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- PERFORMANCE POINTS -->
+        <div class="tab-content" id="par-points">
+          <div class="section-header"><div class="section-title">Performance Points</div></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Points</th><th>Reason</th><th>Awarded At</th></tr></thead>
+            <tbody id="pointsTbody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- ANNOUNCEMENTS -->
+        <div class="tab-content" id="par-announcements">
+          <div class="section-header"><div class="section-title">Academy Announcements</div></div>
+          <div id="annList"><div style="color:var(--grey);padding:20px;">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/api.js"></script>
+<script>
+async function getLinkedStudent(userID) {
+  try {
+    // Get parent record to find linked student
+    const r = await fetch(`../api/parents.php?action=getByUser&userID=${userID}`, { credentials:'include' });
+    const d = await r.json();
+    if (d.success && d.data?.linkedStudentID) {
+      const sr = await fetch(`../api/students.php?action=get&id=${d.data.linkedStudentID}`, { credentials:'include' });
+      const sd = await sr.json();
+      return sd.success ? sd.data : null;
+    }
+    return null;
+  } catch { return null; }
+}
+
+async function loadDashboard() {
+  const user = await API.me();
+
+  // Get linked student
+  let child = await getLinkedStudent(user.userID);
+  // Fallback: try to find first student for demo
+  if (!child) {
+    const studResp = await fetch('../api/students.php?action=list', { credentials:'include' });
+    const sd = await studResp.json();
+    child = sd.data?.[0] || null;
+  }
+
+  if (!child) {
+    document.getElementById('childName').textContent = 'No linked student';
+    document.getElementById('childInfo').textContent = 'Contact admin to link a student to this parent account.';
+    buildLayout([{label:'Profile',items:[{icon:'👤',name:'My Profile',href:'profile.html'}]}],'Parent Dashboard');
+    return;
+  }
+
+  const studentID = child.studentID;
+
+  // Display child info
+  const initials = (child.name||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('childInitials').textContent = initials;
+  document.getElementById('childName').textContent     = child.name || '—';
+  document.getElementById('childInfo').textContent     = `Student ID: #${studentID} | Type: ${child.type||'—'}`;
+
+  // Load all child data
+  const [attendance, results, payments, points, announcements] = await Promise.all([
+    API.listAttendance({studentID}),
+    API.listResults({studentID}),
+    API.listPayments({studentID}),
+    API.listPoints({studentID}),
+    API.listAnnouncements({status:'Published'})
+  ]);
+
+  // Stats
+  const totalPts  = points.reduce((s,p)=>s+parseInt(p.points||0),0);
+  const attPct    = attendance.length ? Math.round(attendance.filter(a=>a.status==='present').length/attendance.length*100) : 0;
+  const lastPay   = payments[0];
+  const lastResult= results[0];
+
+  document.getElementById('childPts').textContent  = totalPts;
+  document.getElementById('statAtt').textContent   = attPct ? attPct+'%' : '—';
+  document.getElementById('statGrade').textContent = lastResult?.resultGrade || '—';
+  document.getElementById('statPay').textContent   = lastPay?.status === 'approved' ? 'Paid' : (lastPay ? 'Pending' : '—');
+  document.getElementById('statAnn').textContent   = announcements.length;
+
+  // Attendance bars by subject
+  const bySubj = {};
+  attendance.forEach(a => {
+    const sub = a.subjectName || 'Unknown';
+    if (!bySubj[sub]) bySubj[sub] = {total:0,present:0};
+    bySubj[sub].total++;
+    if (a.status==='present') bySubj[sub].present++;
+  });
+  const barsEl = document.getElementById('attBars');
+  const subs = Object.keys(bySubj);
+  barsEl.innerHTML = subs.length
+    ? subs.map(s=>{const pct=Math.round(bySubj[s].present/bySubj[s].total*100);return`<div class="progress-bar-wrap"><div class="progress-label"><span>${s}</span><span>${pct}%</span></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div></div>`;}).join('')
+    : '<div style="color:var(--grey);">No attendance records yet.</div>';
+
+  // Attendance table
+  renderTable('attTbody', attendance, [
+    r=>r.sessionDate||r.date||'—', r=>r.subjectName||'—',
+    r=>badge(r.status), r=>r.attendanceNote||'—'
+  ]);
+
+  // Results table
+  renderTable('resultsTbody', results, [
+    r=>r.subjectName||'—', r=>r.examDate||'—',
+    r=>`${r.marks} / 100`, r=>badge(r.resultGrade||'—')
+  ]);
+
+  // Payments table
+  renderTable('payTbody', payments, [
+    r=>r.month?.slice(0,7)||'—',
+    r=>`Rs ${parseFloat(r.amount).toLocaleString()}`,
+    r=>r.paidAt?.split('T')[0]||'—',
+    r=>badge(r.status)
+  ]);
+
+  // Performance points table
+  renderTable('pointsTbody', points, [
+    r=>`<span style="color:${parseInt(r.points)>=0?'var(--success)':'var(--danger)'};">${parseInt(r.points)>=0?'+':''}${r.points}</span>`,
+    r=>r.pointReason||'—', r=>r.awardedAt?.split('T')[0]||'—'
+  ]);
+
+  // Announcements
+  const annEl = document.getElementById('annList');
+  annEl.innerHTML = announcements.length
+    ? announcements.map(a=>`<div class="announcement-card"><div class="ann-title">${a.title}</div><p class="ann-content">${a.content||''}</p><div class="ann-meta"><span>📅 ${(a.postedAt||'').split('T')[0]}</span></div></div>`).join('')
+    : '<p style="color:var(--grey);">No announcements.</p>';
+
+  buildLayout([
+    { label:'Overview', items:[{icon:'📊',name:'Dashboard',active:true}]},
+    { label:"My Child", items:[
+      {icon:'✅',name:'Attendance',href:'#'},
+      {icon:'📝',name:'Results',href:'#'},
+      {icon:'💳',name:'Payments',href:'#'},
+      {icon:'🏆',name:'Performance',href:'#'},
+    ]},
+    { label:'Profile', items:[{icon:'👤',name:'My Profile',href:'profile.html'}]},
+  ], 'Parent Dashboard');
+}
+
+authGuard().then(loadDashboard);
+</script>
+</body>
+</html>

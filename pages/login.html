@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EduCore — Sign In</title>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon">✦</div>
+      <h1>EduCore</h1>
+      <p>Academy Management System</p>
+    </div>
+
+    <p style="font-size:13px;color:var(--grey);text-align:center;margin-bottom:16px;">Sign in with your credentials</p>
+
+    <div class="login-form">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-control" type="email" id="emailInput" placeholder="admin@educore.lk"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-control" type="password" id="passInput" placeholder="••••••••"/>
+      </div>
+      <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In →</button>
+    </div>
+
+    <!-- Demo credentials hint -->
+    <div style="margin-top:24px;padding:16px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:10px;">
+      <div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Demo Credentials (password: password)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <button class="role-chip" onclick="fillCreds('admin@educore.lk')"><span class="role-icon">👨‍💼</span>Admin</button>
+        <button class="role-chip" onclick="fillCreds('manager@educore.lk')"><span class="role-icon">🏢</span>Manager</button>
+        <button class="role-chip" onclick="fillCreds('director@educore.lk')"><span class="role-icon">🌟</span>Director</button>
+        <button class="role-chip" onclick="fillCreds('lecturer@educore.lk')"><span class="role-icon">🎓</span>Lecturer</button>
+        <button class="role-chip" onclick="fillCreds('student@educore.lk')"><span class="role-icon">📖</span>Student</button>
+        <button class="role-chip" onclick="fillCreds('receptionist@educore.lk')"><span class="role-icon">🖥️</span>Receptionist</button>
+      </div>
+    </div>
+
+    <p style="text-align:center;margin-top:16px;font-size:12px;">
+      <a href="../index.html" style="color:var(--grey-light);text-decoration:none;">← Back to Home</a>
+    </p>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const rolePages = {
+  admin:'admin-dashboard.html', manager:'manager-dashboard.html',
+  director:'director-dashboard.html', lecturer:'lecturer-dashboard.html',
+  student:'student-dashboard.html', parent:'parent-dashboard.html',
+  receptionist:'receptionist-dashboard.html'
+};
+
+function fillCreds(email) {
+  document.getElementById('emailInput').value = email;
+  document.getElementById('passInput').value  = 'password';
+  document.querySelectorAll('.role-chip').forEach(c=>c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+
+async function doLogin() {
+  const email = document.getElementById('emailInput').value.trim();
+  const pass  = document.getElementById('passInput').value.trim();
+  if (!email || !pass) { showToast('Please enter email and password.', 'error'); return; }
+
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = 'Signing in…';
+  btn.disabled = true;
+
+  try {
+    const user = await API.login(email, pass);
+    sessionStorage.setItem('userID', user.userID);
+    sessionStorage.setItem('name',   user.name);
+    sessionStorage.setItem('email',  user.email);
+    sessionStorage.setItem('role',   user.role);
+    showToast(`Welcome back, ${user.name}!`, 'gold');
+    setTimeout(() => window.location.href = rolePages[user.role] || 'admin-dashboard.html', 600);
+  } catch {
+    btn.textContent = 'Sign In →';
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('passInput').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>
